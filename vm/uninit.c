@@ -1,3 +1,4 @@
+/* 초기화되지 않은 페이지에 대한 동작을 제공 */
 /* uninit.c: Implementation of uninitialized page.
  *
  * All of the pages are born as uninit page. When the first page fault occurs,

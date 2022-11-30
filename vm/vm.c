@@ -1,5 +1,5 @@
 /* vm.c: Generic interface for virtual memory objects. */
-
+/* 가상 메모리에 대한 일반적인 인터페이스를 제공 */
 #include "threads/malloc.h"
 #include "vm/vm.h"
 #include "vm/inspect.h"

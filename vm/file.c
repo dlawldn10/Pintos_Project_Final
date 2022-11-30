@@ -1,5 +1,5 @@
+/* file-backed page에 대한 동작을 제공 */
 /* file.c: Implementation of memory backed file object (mmaped object). */
-
 #include "vm/vm.h"
 
 static bool file_backed_swap_in (struct page *page, void *kva);
