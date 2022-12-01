@@ -50,6 +50,7 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page (spt, upage) == NULL) {
+		//switch case 사용 예정
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
@@ -66,7 +67,17 @@ struct page *
 spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
 	struct page *page = NULL;
 	/* TODO: Fill this function. */
-
+	/* 인자로 받은 spt 내에서 va를 키로 전달해서 이를 갖는 page를 리턴한다.)
+	hash_find(): hash_elem을 리턴해준다. 이로부터 우리는 해당 page를 찾을 수 있다.
+	해당 spt의 hash 테이블 구조체를 인자로 넣자. 해당 해시 테이블에서 찾아야 하니까.
+	근데 우리가 받은 건 va 뿐이다. 근데 hash_find()는 hash_elem을 인자로 받아야 하니
+	dummy page 하나를 만들고 그것의 가상주소를 va로 만들어. 그 다음 이 페이지의 hash_elem을 넣는다.
+	*/
+	/* e와 같은 해시값을 갖는 page를 spt에서 찾은 다음 해당 hash_elem을 리턴 */
+	page->va=va;
+	struct hash_elem *he = hash_find(&spt->spt_hash,&page->hash_elem);
+	if (he)
+		page = hash_entry(he,struct page, hash_elem);
 	return page;
 }
 
@@ -77,7 +88,8 @@ spt_insert_page (struct supplemental_page_table *spt UNUSED,
 		struct page *page UNUSED) {
 	int succ = false;
 	/* TODO: Fill this function. */
-
+	if (!hash_insert(&spt->spt_hash,&page->hash_elem))
+		succ=true;
 	return succ;
 }
 
@@ -177,9 +189,12 @@ vm_do_claim_page (struct page *page) {
 	return swap_in (page, frame->kva);
 }
 
+/* process.c의 initd에서 호출*/
 /* Initialize new supplemental page table */
 void
 supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
+	// struct hash pages;
+	hash_init(&spt->spt_hash, page_hash, page_less,NULL);
 }
 
 /* Copy supplemental page table from src to dst */
@@ -193,4 +208,36 @@ void
 supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+}
+
+
+/* Project 3 */
+/* hashed index를 만드는 함수 */
+/* Returns a hash value for page p. */
+unsigned
+page_hash (const struct hash_elem *p_, void *aux UNUSED) {
+  const struct page *p = hash_entry(p_, struct page, hash_elem);
+  return hash_bytes (&p->va, sizeof p->va);
+}
+
+/* hash 요소 간에 비교하는 함수 */
+/* Returns true if page a precedes page b. */
+bool
+page_less (const struct hash_elem *a_,
+           const struct hash_elem *b_, void *aux UNUSED) {
+  const struct page *a = hash_entry (a_, struct page, hash_elem);
+  const struct page *b = hash_entry (b_, struct page, hash_elem);
+
+  return a->va < b->va;
+}
+
+/* Returns the page containing the given virtual address, or a null pointer if no such page exists. */
+struct page *
+page_lookup (const void *address) {
+  struct page p;
+  struct hash_elem *e;
+
+  p.va = address;
+  e = hash_find (thread_current()->spt.hash, &p.hash_elem);//???
+  return e != NULL ? hash_entry (e, struct page, hash_elem) : NULL;
 }
