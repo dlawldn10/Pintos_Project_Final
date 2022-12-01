@@ -1,5 +1,5 @@
+/* anonymous page에 대한 동작을 제공 */
 /* anon.c: Implementation of page for non-disk image (a.k.a. anonymous page). */
-
 #include "vm/vm.h"
 #include "devices/disk.h"
 
