@@ -5,6 +5,7 @@
 #include "vm/inspect.h"
 #include "include/threads/thread.h"
 #include "include/threads/vaddr.h"
+#include "include/userprog/process.h"
 
 struct list frame_table;
 
