@@ -4,6 +4,7 @@
 #include "vm/vm.h"
 #include "vm/inspect.h"
 #include "include/threads/thread.h"
+#include "include/threads/vaddr.h"
 
 struct list frame_table;
 
@@ -80,10 +81,11 @@ spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
 	근데 우리가 받은 건 va 뿐이다. 근데 hash_find()는 hash_elem을 인자로 받아야 하니
 	dummy page 하나를 만들고 그것의 가상주소를 va로 만들어. 그 다음 이 페이지의 hash_elem을 넣는다.
 	*/
-	/* e와 같은 해시값을 갖는 page를 spt에서 찾은 다음 해당 hash_elem을 리턴 */
-	page->va=va;
+	
+	page->va=pg_round_down (va);
 	struct hash_elem *he = hash_find(&spt->spt_hash,&page->hash_elem);
 	if (he)
+		/* e와 같은 해시값을 갖는 page를 spt에서 찾은 다음 해당 hash_elem을 리턴 */
 		page = hash_entry(he,struct page, hash_elem);
 	return page;
 }
@@ -174,14 +176,15 @@ vm_dealloc_page (struct page *page) {
 	free (page);
 }
 
-/* VA에 할당된 페이지를 Claim (Physical 프레임을 할당 받는 것)*/
+/* VA에 할당된 페이지를 Claim (즉 va에 Physical 프레임을 할당 받는 것)*/
 /* Claim the page that allocate on VA. */
 bool
 vm_claim_page (void *va UNUSED) {
 	struct page *page = NULL;
 	/* TODO: Fill this function */
+	/* 먼저 이를 위해 va에 해당하는 page찾기*/
 	page = spt_find_page(&thread_current()->spt,va);//???
-
+	
 	return vm_do_claim_page (page);
 }
 
@@ -197,7 +200,7 @@ vm_do_claim_page (struct page *page) {
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
 	/* TODO: 가상 주소에서 물리 주소로의 매핑을 페이지 테이블에 추가 */
-	pml4_set_page(thread_current()->pml4,page->va,frame->kva,true);//???
+	install_page(page->va,frame->kva,page->writable);
 
 	return swap_in (page, frame->kva);
 }
