@@ -25,7 +25,7 @@ bool
 hash_init (struct hash *h,
 		hash_hash_func *hash, hash_less_func *less, void *aux) {
 	h->elem_cnt = 0;
-	h->bucket_cnt = 4;
+	h->bucket_cnt = 4;	//왜 4개???
 	h->buckets = malloc (sizeof *h->buckets * h->bucket_cnt);
 	h->hash = hash;
 	h->less = less;
@@ -52,8 +52,8 @@ hash_clear (struct hash *h, hash_action_func *destructor) {
 	size_t i;
 
 	for (i = 0; i < h->bucket_cnt; i++) {
-		struct list *bucket = &h->buckets[i];
-
+		struct list *bucket = &h->buckets[i];//&*(h->buckets+i)
+		//arry[i] =*(arry+i) 
 		if (destructor != NULL)
 			while (!list_empty (bucket)) {
 				struct list_elem *list_elem = list_pop_front (bucket);
@@ -94,6 +94,7 @@ hash_insert (struct hash *h, struct hash_elem *new) {
 	struct hash_elem *old = find_elem (h, bucket, new);
 
 	if (old == NULL)
+		/* elem이 추가되면 h->elem_cnt ++ 됨 */
 		insert_elem (h, bucket, new);
 
 	rehash (h);
@@ -117,6 +118,8 @@ hash_replace (struct hash *h, struct hash_elem *new) {
 	return old;
 }
 
+/* fild_elem()을 호출하여 hash_elem *e가 들어있는 bucket list를 찾고*/
+/* 해당 bucket list 에서 hash_elem *e와 동일한 hash_elem을 찾아 반환, 없으면 null반환*/
 /* Finds and returns an element equal to E in hash table H, or a
    null pointer if no equal element exists in the table. */
 struct hash_elem *
@@ -276,6 +279,7 @@ hash_int (int i) {
 	return hash_bytes (&i, sizeof i);
 }
 
+/* hash *h 내에서 hash_elem *e 를 가지고 있는 bucket list 반환*/
 /* Returns the bucket in H that E belongs in. */
 static struct list *
 find_bucket (struct hash *h, struct hash_elem *e) {
@@ -283,6 +287,7 @@ find_bucket (struct hash *h, struct hash_elem *e) {
 	return &h->buckets[bucket_idx];
 }
 
+/* bucket list 에서 hash_elem *e와 동일한 hash_elem을 찾아 반환, 없으면 null반환*/
 /* Searches BUCKET in H for a hash element equal to E.  Returns
    it if found or a null pointer otherwise. */
 static struct hash_elem *
@@ -314,6 +319,7 @@ is_power_of_2 (size_t x) {
 #define BEST_ELEMS_PER_BUCKET 2 /* Ideal elems/bucket. */
 #define MAX_ELEMS_PER_BUCKET  4 /* Elems/bucket > 4: increase # of buckets. */
 
+/* hash *h에 대해 이상적인 buckets 크기로 변경 */
 /* Changes the number of buckets in hash table H to match the
    ideal.  This function can fail because of an out-of-memory
    condition, but that'll just make hash accesses less efficient;
@@ -337,6 +343,7 @@ rehash (struct hash *h) {
 	new_bucket_cnt = h->elem_cnt / BEST_ELEMS_PER_BUCKET;
 	if (new_bucket_cnt < 4)
 		new_bucket_cnt = 4;
+	/* i 이하의 수 중에 가장 큰 2의 제곱 수로 변환 7->4, 8->8, 10->8*/
 	while (!is_power_of_2 (new_bucket_cnt))
 		new_bucket_cnt = turn_off_least_1bit (new_bucket_cnt);
 
@@ -359,6 +366,7 @@ rehash (struct hash *h) {
 	h->buckets = new_buckets;
 	h->bucket_cnt = new_bucket_cnt;
 
+	/* old elem들을 변경된 new bucket 리스트에 하나씩 담는다.*/
 	/* Move each old element into the appropriate new bucket. */
 	for (i = 0; i < old_bucket_cnt; i++) {
 		struct list *old_bucket;
@@ -378,6 +386,7 @@ rehash (struct hash *h) {
 	free (old_buckets);
 }
 
+/* hash_elem *e를 bucket list에 삽입  */
 /* Inserts E into BUCKET (in hash table H). */
 static void
 insert_elem (struct hash *h, struct list *bucket, struct hash_elem *e) {

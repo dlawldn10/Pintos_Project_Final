@@ -60,6 +60,7 @@ err:
 	return false;
 }
 
+/* 주어진 spt에서 va에 해당하는 struct page를 찾는다(실패하면 NULL을 반환) */
 /* Find VA from spt and return page. On error, return NULL. */
 struct page *
 spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
@@ -69,6 +70,7 @@ spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
 	return page;
 }
 
+/* struct page를 주어진 spt에 넣는다. */
 /* Insert PAGE into spt with validation. */
 bool
 spt_insert_page (struct supplemental_page_table *spt UNUSED,
@@ -104,6 +106,7 @@ vm_evict_frame (void) {
 	return NULL;
 }
 
+/* palloc_get_page를 통해 유저풀에서 새로운 물리 페이지를 할당 받는다 */
 /* palloc() and get frame. If there is no available page, evict the page
  * and return it. This always return valid address. That is, if the user pool
  * memory is full, this function evicts the frame to get the available memory
@@ -148,6 +151,7 @@ vm_dealloc_page (struct page *page) {
 	free (page);
 }
 
+/* VA에 할당된 페이지를 Claim (Physical 프레임을 할당 받는 것)*/
 /* Claim the page that allocate on VA. */
 bool
 vm_claim_page (void *va UNUSED) {
@@ -157,6 +161,7 @@ vm_claim_page (void *va UNUSED) {
 	return vm_do_claim_page (page);
 }
 
+/* 페이지 claim : 물리 프레임을 할당 받는 것, vm_get_frame을 통해 프레임을 얻어온다*/
 /* Claim the PAGE and set up the mmu. */
 static bool
 vm_do_claim_page (struct page *page) {
@@ -167,6 +172,7 @@ vm_do_claim_page (struct page *page) {
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
+	/* TODO: 가상 주소에서 물리 주소로의 매핑을 페이지 테이블에 추가*/
 
 	return swap_in (page, frame->kva);
 }
