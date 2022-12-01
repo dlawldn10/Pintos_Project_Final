@@ -3,6 +3,7 @@
 #include "threads/malloc.h"
 #include "vm/vm.h"
 #include "vm/inspect.h"
+#include "include/threads/thread.h"
 
 struct list frame_table;
 
@@ -136,7 +137,7 @@ vm_get_frame (void) {
 	/* 유저풀에서 새로운 page 찾아서 시작주소값 반환 */
 	frame = (struct frame *)malloc(sizeof(struct frame));
 	if (frame->kva = (struct frame *) palloc_get_page(PAL_USER)){
-		frame->page = NULL;
+		frame->page = NULL;//???
 	}
 	ASSERT (frame != NULL);
 	ASSERT (frame->page == NULL);
@@ -179,6 +180,7 @@ bool
 vm_claim_page (void *va UNUSED) {
 	struct page *page = NULL;
 	/* TODO: Fill this function */
+	page = spt_find_page(&thread_current()->spt,va);//???
 
 	return vm_do_claim_page (page);
 }
@@ -195,7 +197,7 @@ vm_do_claim_page (struct page *page) {
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
 	/* TODO: 가상 주소에서 물리 주소로의 매핑을 페이지 테이블에 추가 */
-	
+	pml4_set_page(thread_current()->pml4,page->va,frame->kva,true);//???
 
 	return swap_in (page, frame->kva);
 }
@@ -249,6 +251,6 @@ page_lookup (const void *address) {
   struct hash_elem *e;
 
   p.va = address;
-  e = hash_find (thread_current()->spt.hash, &p.hash_elem);//???
+  e = hash_find (&thread_current()->spt.spt_hash, &p.hash_elem);//???
   return e != NULL ? hash_entry (e, struct page, hash_elem) : NULL;
 }
