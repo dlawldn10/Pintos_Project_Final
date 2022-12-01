@@ -4,6 +4,8 @@
 #include "vm/vm.h"
 #include "vm/inspect.h"
 
+struct list frame_table;
+
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
 void
@@ -16,6 +18,10 @@ vm_init (void) {
 	register_inspect_intr ();
 	/* DO NOT MODIFY UPPER LINES. */
 	/* TODO: Your code goes here. */
+
+	/* project 3*/
+	list_init(&frame_table);
+
 }
 
 /* Get the type of the page. This function is useful if you want to know the
@@ -127,7 +133,11 @@ static struct frame *
 vm_get_frame (void) {
 	struct frame *frame = NULL;
 	/* TODO: Fill this function. */
-
+	/* 유저풀에서 새로운 page 찾아서 시작주소값 반환 */
+	frame = (struct frame *)malloc(sizeof(struct frame));
+	if (frame->kva = (struct frame *) palloc_get_page(PAL_USER)){
+		frame->page = NULL;
+	}
 	ASSERT (frame != NULL);
 	ASSERT (frame->page == NULL);
 	return frame;
@@ -184,7 +194,8 @@ vm_do_claim_page (struct page *page) {
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
-	/* TODO: 가상 주소에서 물리 주소로의 매핑을 페이지 테이블에 추가*/
+	/* TODO: 가상 주소에서 물리 주소로의 매핑을 페이지 테이블에 추가 */
+	
 
 	return swap_in (page, frame->kva);
 }
