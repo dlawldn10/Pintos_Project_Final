@@ -29,7 +29,7 @@ uninit_new (struct page *page, void *va, vm_initializer *init,
 		enum vm_type type, void *aux,
 		bool (*initializer)(struct page *, enum vm_type, void *)) {
 	ASSERT (page != NULL);
-
+	/* 받아온 정보를 바탕으로 페이지 구조체 초기화 */
 	*page = (struct page) {
 		.operations = &uninit_ops,
 		.va = va,
