@@ -10,10 +10,10 @@
  * */
 
 #include "vm/vm.h"
-#include "vm/uninit.h"
+#include "include/vm/uninit.h"
 
-static bool uninit_initialize (struct page *page, void *kva);
-static void uninit_destroy (struct page *page);
+// static bool uninit_initialize (struct page *page, void *kva);
+// static void uninit_destroy (struct page *page);
 
 /* DO NOT MODIFY this struct */
 static const struct page_operations uninit_ops = {
@@ -29,7 +29,7 @@ uninit_new (struct page *page, void *va, vm_initializer *init,
 		enum vm_type type, void *aux,
 		bool (*initializer)(struct page *, enum vm_type, void *)) {
 	ASSERT (page != NULL);
-
+	/* 받아온 정보를 바탕으로 페이지 구조체 초기화 */
 	*page = (struct page) {
 		.operations = &uninit_ops,
 		.va = va,
@@ -44,7 +44,8 @@ uninit_new (struct page *page, void *va, vm_initializer *init,
 }
 
 /* Initalize the page on first fault */
-static bool
+// static bool
+bool
 uninit_initialize (struct page *page, void *kva) {
 	struct uninit_page *uninit = &page->uninit;
 

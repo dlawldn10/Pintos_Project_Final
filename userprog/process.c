@@ -20,6 +20,7 @@
 #include "intrinsic.h"
 #ifdef VM
 #include "vm/vm.h"
+#include "include/vm/file.h"
 #endif
 
 static void process_cleanup (void);
@@ -67,11 +68,13 @@ initd (void *f_name) {
 	supplemental_page_table_init (&thread_current ()->spt);
 #endif
 
-	// process_init ();
-
+	// process_init ();//???
+	// printf("=========process_exec 함수 시작========\n");
 	if (process_exec (f_name) < 0)
 		PANIC("Fail to launch initd\n");
 	NOT_REACHED ();
+	// printf("=========process_exec 함수 끝========\n");
+
 }
 
 /* Clones the current process as `name`. Returns the new process's thread id, or
@@ -750,7 +753,24 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
+
+	lock_acquire(&vmlock);
+	struct file_page *fp = aux;
+	
+	file_seek(fp->file, fp->ofs);
+
+	/* Load this page. */
+	if (file_read (fp->file, page->frame->kva, fp->page_read_byte) != (int) fp->page_read_byte) {
+		palloc_free_page (page->frame->kva);
+		free(aux);
+		lock_release(&vmlock);
+		return false;
+	}
+	free(aux);
+	lock_release(&vmlock);
+	return true;
 }
+
 
 /* Loads a segment starting at offset OFS in FILE at address
  * UPAGE.  In total, READ_BYTES + ZERO_BYTES bytes of virtual
@@ -781,9 +801,20 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
+		/* Project 3 */
 		void *aux = NULL;
+		struct file_page *fp = (struct file_page *)malloc(sizeof (struct file_page));
+		//struct file_page *fp ;
+		fp->file=file;
+		fp->ofs=ofs;
+		fp->page_read_byte=read_bytes;
+		fp->page_zero_byte=zero_bytes;
+		aux = fp;
+
+		// aux = file;
+
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
-					writable, lazy_load_segment, aux))
+					writable, lazy_load_segment, (struct file_page *)aux))
 			return false;
 
 		/* Advance. */
@@ -804,7 +835,19 @@ setup_stack (struct intr_frame *if_) {
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
-
+	//  VM_MARKER_0 = (1<<3)
+	success = vm_alloc_page(VM_ANON, stack_bottom, true) && vm_claim_page(stack_bottom);
+	if (success)
+		if_->rsp = USER_STACK;
+	
 	return success;
 }
+/*   구현 후 스택의 모습
+	------------------------- <---- USER_STACK == if_->rsp
+	|                       |
+	|       NEW PAGE        |
+	|                       |
+	|                       |
+	------------------------- <---- stack_bottom
+*/
 #endif /* VM */

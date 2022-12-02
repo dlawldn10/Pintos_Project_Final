@@ -7,6 +7,9 @@
 #include "include/threads/vaddr.h"
 #include "include/userprog/process.h"
 
+/*Project 3*/
+#include "include/vm/uninit.h"
+
 struct list frame_table;
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
@@ -24,7 +27,7 @@ vm_init (void) {
 
 	/* project 3*/
 	list_init(&frame_table);
-
+	lock_init(&vmlock);
 }
 
 /* Get the type of the page. This function is useful if you want to know the
@@ -46,25 +49,43 @@ static struct frame *vm_get_victim (void);
 static bool vm_do_claim_page (struct page *page);
 static struct frame *vm_evict_frame (void);
 
+/* 커널이 새 페이지 request를 받았을 때 발동, 페이지 구조체를 할당하고 
+   해당 페이지 타입에 맞게 적절한 initializer를 세팅함으로써 새 페이지를 초기화 */
 /* Create the pending page object with initializer. If you want to create a
  * page, do not create it directly and make it through this function or
  * `vm_alloc_page`. */
 bool
 vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		vm_initializer *init, void *aux) {
-
+	
 	ASSERT (VM_TYPE(type) != VM_UNINIT)
-
 	struct supplemental_page_table *spt = &thread_current ()->spt;
-
+	
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page (spt, upage) == NULL) {
 		//switch case 사용 예정
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
-
+		struct page *page= (struct page *)malloc(sizeof(struct page));
+		page->va=upage;
 		/* TODO: Insert the page into the spt. */
+		switch(type){
+			case VM_UNINIT:
+				uninit_new(page, page->va,init,VM_UNINIT, aux, uninit_initialize);
+				break;
+			case VM_ANON:
+				uninit_new(page, page->va,init, VM_ANON, aux, anon_initializer);
+				break;
+
+			case VM_FILE:
+				uninit_new(page, page->va,init, VM_FILE, aux,file_backed_initializer);
+				break;
+
+			default:
+				break;
+
+		}
 	}
 err:
 	return false;
@@ -82,7 +103,7 @@ spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
 	근데 우리가 받은 건 va 뿐이다. 근데 hash_find()는 hash_elem을 인자로 받아야 하니
 	dummy page 하나를 만들고 그것의 가상주소를 va로 만들어. 그 다음 이 페이지의 hash_elem을 넣는다.
 	*/
-	
+	page = (struct page *)malloc(sizeof(struct page));//???
 	page->va=pg_round_down (va);
 	struct hash_elem *he = hash_find(&spt->spt_hash,&page->hash_elem);
 	if (he)
@@ -137,8 +158,8 @@ static struct frame *
 vm_get_frame (void) {
 	struct frame *frame = NULL;
 	/* TODO: Fill this function. */
-	/* 유저풀에서 새로운 page 찾아서 시작주소값 반환 */
 	frame = (struct frame *)malloc(sizeof(struct frame));
+	/* 유저풀에서 새로운 page 찾아서 시작주소값 반환 */
 	if (frame->kva = (struct frame *) palloc_get_page(PAL_USER)){
 		frame->page = NULL;//???
 	}
@@ -185,7 +206,7 @@ vm_claim_page (void *va UNUSED) {
 	/* TODO: Fill this function */
 	/* 먼저 이를 위해 va에 해당하는 page찾기*/
 	page = spt_find_page(&thread_current()->spt,va);//???
-	
+
 	return vm_do_claim_page (page);
 }
 
