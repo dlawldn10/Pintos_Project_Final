@@ -68,11 +68,13 @@ initd (void *f_name) {
 	supplemental_page_table_init (&thread_current ()->spt);
 #endif
 
-	// process_init ();
-
+	// process_init ();//???
+	// printf("=========process_exec 함수 시작========\n");
 	if (process_exec (f_name) < 0)
 		PANIC("Fail to launch initd\n");
 	NOT_REACHED ();
+	// printf("=========process_exec 함수 끝========\n");
+
 }
 
 /* Clones the current process as `name`. Returns the new process's thread id, or

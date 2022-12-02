@@ -6,8 +6,9 @@
 #include "include/threads/thread.h"
 #include "include/threads/vaddr.h"
 #include "include/userprog/process.h"
-#include "uninit.c"
 
+/*Project 3*/
+#include "include/vm/uninit.h"
 
 struct list frame_table;
 
