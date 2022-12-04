@@ -63,7 +63,6 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 	
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page (spt, upage) == NULL) {
-		//switch case 사용 예정
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
@@ -71,9 +70,6 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		page->va=upage;
 		/* TODO: Insert the page into the spt. */
 		switch(type){
-			case VM_UNINIT:
-				uninit_new(page, page->va,init,VM_UNINIT, aux, uninit_initialize);
-				break;
 			case VM_ANON:
 				uninit_new(page, page->va,init, VM_ANON, aux, anon_initializer);
 				break;
@@ -83,9 +79,11 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 				break;
 
 			default:
+				uninit_new(page, page->va,init, type, aux,NULL);
 				break;
-
 		}
+		page->writable=writable;
+		return spt_insert_page(spt,page);
 	}
 err:
 	return false;
@@ -159,8 +157,6 @@ static struct frame *
 vm_get_frame (void) {
 	struct frame *frame = NULL;
 	/* TODO: Fill this function. */
-	ASSERT (frame != NULL);
-	ASSERT (frame->page == NULL);
 
 	frame = (struct frame *)malloc(sizeof(struct frame));
 	/* 유저풀에서 새로운 page 찾아서 시작주소값 반환 */
@@ -168,6 +164,8 @@ vm_get_frame (void) {
 		list_push_back(&frame_table, &frame->frame_elem);
 		frame->page = NULL;
 	}
+	ASSERT (frame != NULL);
+	ASSERT (frame->page == NULL);
 	return frame;
 }
 
