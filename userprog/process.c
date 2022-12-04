@@ -68,12 +68,12 @@ initd (void *f_name) {
 	supplemental_page_table_init (&thread_current ()->spt);
 #endif
 
-	// process_init ();//???
-	// printf("=========process_exec 함수 시작========\n");
+	process_init ();
+
 	if (process_exec (f_name) < 0)
 		PANIC("Fail to launch initd\n");
+	
 	NOT_REACHED ();
-	// printf("=========process_exec 함수 끝========\n");
 
 }
 
@@ -742,8 +742,8 @@ setup_stack (struct intr_frame *if_) {
 	return success;
 }
 
+#endif
 
-#else
 /* From here, codes will be used after project 3.
  * If you want to implement the function for only project 2, implement it on the
  * upper block. */
@@ -814,8 +814,9 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		// aux = file;
 
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
-					writable, lazy_load_segment, (struct file_page *)aux))
+					writable, lazy_load_segment, (struct file_page *)aux)){
 			return false;
+					}
 
 		/* Advance. */
 		read_bytes -= page_read_bytes;
@@ -850,4 +851,5 @@ setup_stack (struct intr_frame *if_) {
 	|                       |
 	------------------------- <---- stack_bottom
 */
-#endif /* VM */
+// #endif /* VM */
+
