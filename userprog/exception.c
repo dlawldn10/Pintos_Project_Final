@@ -109,6 +109,7 @@ kill (struct intr_frame *f) {
    to implement virtual memory.  Some solutions to project 2 may
    also require modifying this code.
 
+   //주소값 하위 1,2,3번째 비트로 pg_fault정보 확인가능
    At entry, the address that faulted is in CR2 (Control Register
    2) and information about the fault, formatted as described in
    the PF_* macros in exception.h, is in F's error_code member.  The
@@ -134,7 +135,7 @@ page_fault (struct intr_frame *f) {
 	   be assured of reading CR2 before it changed). */
 	intr_enable ();
 
-
+	/* 매크로를 통해서 Page fault error code 확인 */
 	/* Determine cause. */
 	not_present = (f->error_code & PF_P) == 0;
 	write = (f->error_code & PF_W) != 0;
@@ -142,6 +143,9 @@ page_fault (struct intr_frame *f) {
 
 #ifdef VM
 	/* For project 3 and later. */
+	/* 제어를 vm_try_handle_fault in vm/vm.c로 넘겨 진짜 page fault인지를 먼저 체크 
+	   진짜 page fault : 진짜로 유효하지 않은 접근 오류(주소가 잘못됐다거나 프로세스가 사용하지 않는 주소라거나 접근 권한 위반했다거나)
+	   가짜(bogus) page fault : 일부 내용을 페이지에 올리고 제어권을 사용자 프로그램에 반환 */
 	if (vm_try_handle_fault (f, fault_addr, user, write, not_present))
 		return;
 #endif

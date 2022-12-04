@@ -8,6 +8,13 @@
         "flags.h": "c",
         "intrinsic.h": "c",
         "string.h": "c",
-        "syscall.h": "c"
+        "syscall.h": "c",
+        "disk.h": "c",
+        "vm.h": "c",
+        "malloc.h": "c",
+        "thread.h": "c",
+        "inspect.h": "c",
+        "vaddr.h": "c",
+        "process.h": "c"
     }
 }

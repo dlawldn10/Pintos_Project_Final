@@ -2,6 +2,10 @@
 #define VM_VM_H
 #include <stdbool.h>
 #include "threads/palloc.h"
+#include "lib/kernel/hash.h"
+
+/* Project 3*/
+struct lock vmlock; 
 
 enum vm_type {
 	/* page not initialized */
@@ -17,6 +21,7 @@ enum vm_type {
 
 	/* Auxillary bit flag marker for store information. You can add more
 	 * markers, until the value is fit in the int. */
+	/* Project 3*/
 	VM_MARKER_0 = (1 << 3),
 	VM_MARKER_1 = (1 << 4),
 
@@ -40,12 +45,16 @@ struct thread;
  * This is kind of "parent class", which has four "child class"es, which are
  * uninit_page, file_page, anon_page, and page cache (project4).
  * DO NOT REMOVE/MODIFY PREDEFINED MEMBER OF THIS STRUCTURE. */
+ /* 가상 메모리 내의 페이지를 나타내는 구조체
+ 	모든 필요한 데이터를 페이지 안에 담을 수 있음*/
 struct page {
 	const struct page_operations *operations;
 	void *va;              /* Address in terms of user space */
 	struct frame *frame;   /* Back reference for frame */
 
 	/* Your implementation */
+	struct hash_elem hash_elem;
+	bool writable;
 
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
@@ -60,9 +69,12 @@ struct page {
 };
 
 /* The representation of "frame" */
+/* 두개의 필드만을 가지고 있지만, frame 관리 인터페이스를 구현하면서 추가해도 된다 */
 struct frame {
 	void *kva;
 	struct page *page;
+	/* Project 3 */
+	struct list_elem frame_elem;
 };
 
 /* The function table for page operations.
@@ -85,6 +97,7 @@ struct page_operations {
  * We don't want to force you to obey any specific design for this struct.
  * All designs up to you for this. */
 struct supplemental_page_table {
+	struct hash spt_hash;
 };
 
 #include "threads/thread.h"
@@ -108,5 +121,11 @@ bool vm_alloc_page_with_initializer (enum vm_type type, void *upage,
 void vm_dealloc_page (struct page *page);
 bool vm_claim_page (void *va);
 enum vm_type page_get_type (struct page *page);
+
+/* Project 3*/
+unsigned page_hash (const struct hash_elem *p_, void *aux);
+bool page_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED);
+struct page *page_lookup (const void *address);
+
 
 #endif  /* VM_VM_H */

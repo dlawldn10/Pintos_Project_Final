@@ -30,6 +30,7 @@ struct hash_elem {
 	struct list_elem list_elem;
 };
 
+/* 해당 elem이 소속되어있는 구조체의 포인터를 반환 */
 /* Converts pointer to hash element HASH_ELEM into a pointer to
  * the structure that HASH_ELEM is embedded inside.  Supply the
  * name of the outer structure STRUCT and the member name MEMBER
@@ -96,5 +97,7 @@ bool hash_empty (struct hash *);
 uint64_t hash_bytes (const void *, size_t);
 uint64_t hash_string (const char *);
 uint64_t hash_int (int);
+
+
 
 #endif /* lib/kernel/hash.h */
