@@ -162,7 +162,8 @@ vm_get_frame (void) {
 
 	frame = (struct frame *)malloc(sizeof(struct frame));
 	/* 유저풀에서 새로운 page 찾아서 시작주소값 반환 */
-	if (frame->kva = palloc_get_page(PAL_USER) != NULL){
+	frame->kva = palloc_get_page(PAL_USER);
+	if (frame->kva != NULL){
 		list_push_back(&frame_table, &frame->frame_elem);
 		frame->page = NULL;
 	}
@@ -189,6 +190,8 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	struct page *page = NULL;
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
+
+	page = spt_find_page(spt, addr);
 
 	return vm_do_claim_page (page);
 }
@@ -224,12 +227,10 @@ vm_do_claim_page (struct page *page) {
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
-	printf("=======vm_do_claim_page 시작======\n");
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
 	/* TODO: 가상 주소에서 물리 주소로의 매핑을 페이지 테이블에 추가 */
 	if (install_page(page->va,frame->kva,page->writable)) {
-		printf("=======vm_do_claim_page 끝======\n");
 		return swap_in (page, frame->kva);
 	}
 	return false;
