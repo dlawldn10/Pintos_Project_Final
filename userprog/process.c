@@ -766,6 +766,7 @@ lazy_load_segment (struct page *page, void *aux) {
 		lock_release(&vmlock);
 		return false;
 	}
+	memset(page->frame->kva + fp->page_read_byte, 0, fp->page_zero_byte);
 	free(aux);
 	lock_release(&vmlock);
 	return true;
@@ -814,14 +815,14 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		// aux = file;
 
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
-					writable, lazy_load_segment, (struct file_page *)aux)){
+					writable, lazy_load_segment, (struct file_page *)aux))
 			return false;
-					}
 
 		/* Advance. */
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
 		upage += PGSIZE;
+		ofs += page_read_bytes;
 	}
 	return true;
 }
@@ -837,10 +838,16 @@ setup_stack (struct intr_frame *if_) {
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
 	//  VM_MARKER_0 = (1<<3)
-	success = vm_alloc_page(VM_ANON, stack_bottom, true) && vm_claim_page(stack_bottom);
-	if (success)
-		if_->rsp = USER_STACK;
-	
+	// success = vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, true) && vm_claim_page(stack_bottom);
+	// if (success)
+	// 	if_->rsp = USER_STACK;
+
+	if (vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, true)) {
+		success = vm_claim_page(stack_bottom);
+		if (success) {
+			if_->rsp = USER_STACK;
+		}
+	}
 	return success;
 }
 /*   구현 후 스택의 모습

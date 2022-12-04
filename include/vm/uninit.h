@@ -23,7 +23,7 @@ void uninit_new (struct page *page, void *va, vm_initializer *init,
 		bool (*initializer)(struct page *, enum vm_type, void *kva));
 
 /* Project 3*/
-bool uninit_initialize (struct page *page, void *kva);
+static bool uninit_initialize (struct page *page, void *kva);
 static void uninit_destroy (struct page *page);
 
 #endif
