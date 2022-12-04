@@ -106,10 +106,11 @@ spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
 	page = (struct page *)malloc(sizeof(struct page));//???
 	page->va=pg_round_down (va);
 	struct hash_elem *he = hash_find(&spt->spt_hash,&page->hash_elem);
+	free(page);
 	if (he)
 		/* e와 같은 해시값을 갖는 page를 spt에서 찾은 다음 해당 hash_elem을 리턴 */
-		page = hash_entry(he,struct page, hash_elem);
-	return page;
+		return hash_entry(he, struct page, hash_elem);
+	return NULL;
 }
 
 /* struct page를 주어진 spt에 넣는다. */
@@ -158,13 +159,15 @@ static struct frame *
 vm_get_frame (void) {
 	struct frame *frame = NULL;
 	/* TODO: Fill this function. */
+	ASSERT (frame != NULL);
+	ASSERT (frame->page == NULL);
+
 	frame = (struct frame *)malloc(sizeof(struct frame));
 	/* 유저풀에서 새로운 page 찾아서 시작주소값 반환 */
 	if (frame->kva = (struct frame *) palloc_get_page(PAL_USER)){
-		frame->page = NULL;//???
+		list_push_back(&frame_table, &frame->frame_elem);
+		frame->page = NULL;
 	}
-	ASSERT (frame != NULL);
-	ASSERT (frame->page == NULL);
 	return frame;
 }
 
@@ -206,6 +209,9 @@ vm_claim_page (void *va UNUSED) {
 	/* TODO: Fill this function */
 	/* 먼저 이를 위해 va에 해당하는 page찾기*/
 	page = spt_find_page(&thread_current()->spt,va);//???
+	if (page == NULL) {
+		return false;
+	}
 
 	return vm_do_claim_page (page);
 }
