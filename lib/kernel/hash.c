@@ -170,6 +170,10 @@ hash_apply (struct hash *h, hash_action_func *action) {
 	}
 }
 
+void hash_copy (struct hash_elem* he, void *aux) {
+
+}
+
 /* Initializes I for iterating hash table H.
 
    Iteration idiom:
