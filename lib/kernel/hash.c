@@ -11,6 +11,7 @@
 /* Project 3*/
 #include "include/vm/vm.h"
 #include "include/threads/vaddr.h"
+#include "include/threads/mmu.h"
 
 #define list_elem_to_hash_elem(LIST_ELEM)                       \
 	list_entry(LIST_ELEM, struct hash_elem, list_elem)
@@ -85,6 +86,35 @@ hash_destroy (struct hash *h, hash_action_func *destructor) {
 	if (destructor != NULL)
 		hash_clear (h, destructor);
 	free (h->buckets);
+}
+
+
+void
+hash_destory_each(const struct hash_elem *he,void *aux){
+	struct page *free_page = hash_entry(he, struct page, hash_elem);
+	// destroy(free_page);
+	struct thread *cur= thread_current();
+	// if(free_page->frame!=NULL){
+	// 	free_page->frame->page=NULL;
+	// }
+
+	pml4_clear_page(cur->pml4, free_page->va);
+	if (free_page->frame!=NULL){
+		free_page->frame->page=NULL;
+	}
+	vm_dealloc_page(free_page);
+
+	// free(free_page->va);
+	// free(free_page->uninit.aux);
+	// vm_dealloc_page (free_page);
+
+	// if (free_page->operations->type == VM_UNINIT) {
+	// 	free(free_page);
+	// }
+	// else if(free_page->operations->type != VM_UNINIT) {
+	// 	struct frame *free_frame = free_page->frame;
+	// 	free(free_page);
+	// }
 }
 
 /* Inserts NEW into hash table H and returns a null pointer, if
