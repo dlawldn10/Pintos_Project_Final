@@ -270,7 +270,7 @@ process_exec (void *f_name) {
 
 	/* We first kill the current context */
 	process_cleanup ();
-
+	supplemental_page_table_init(&thread_current()->spt);
 	/* And then load the binary */
 	success = load (copy, &_if);
 	//hex_dump(_if.rsp,_if.rsp, USER_STACK - _if.rsp,true);
@@ -738,6 +738,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
 		upage += PGSIZE;
+		
 	}
 	return true;
 }

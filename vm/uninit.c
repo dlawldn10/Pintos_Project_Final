@@ -66,4 +66,9 @@ uninit_destroy (struct page *page) {
 	struct uninit_page *uninit UNUSED = &page->uninit;
 	/* TODO: Fill this function.
 	 * TODO: If you don't have anything to do, just return. */
+	// if (page->frame!=NULL){
+	// 	list_remove(&page->frame->frame_elem);
+	// 	free(page->frame);
+	// 	// free(uninit->aux);
+	// }
 }
