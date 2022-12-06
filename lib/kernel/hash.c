@@ -92,29 +92,7 @@ hash_destroy (struct hash *h, hash_action_func *destructor) {
 void
 hash_destory_each(const struct hash_elem *he,void *aux){
 	struct page *free_page = hash_entry(he, struct page, hash_elem);
-	// destroy(free_page);
-	struct thread *cur= thread_current();
-	// if(free_page->frame!=NULL){
-	// 	free_page->frame->page=NULL;
-	// }
-
-	pml4_clear_page(cur->pml4, free_page->va);
-	if (free_page->frame!=NULL){
-		free_page->frame->page=NULL;
-	}
-	vm_dealloc_page(free_page);
-
-	// free(free_page->va);
-	// free(free_page->uninit.aux);
-	// vm_dealloc_page (free_page);
-
-	// if (free_page->operations->type == VM_UNINIT) {
-	// 	free(free_page);
-	// }
-	// else if(free_page->operations->type != VM_UNINIT) {
-	// 	struct frame *free_frame = free_page->frame;
-	// 	free(free_page);
-	// }
+	free(free_page);
 }
 
 /* Inserts NEW into hash table H and returns a null pointer, if
@@ -214,17 +192,19 @@ void hash_copy_each (struct hash_elem* he, void *aux) {
 	// if(parent_type & VM_MARKER_0) {
 	// 	setup_stack(&thread_current()->tf);
 	// }
-	// else if(parent_type == VM_UNINIT) {
-	// 	if(!vm_alloc_page_with_initializer(parent_type, parent_va, parent_writable, parent_init, aux))
-	// 		return false;
-	// }
-	if(parent_type != VM_UNINIT) {
+ 	if(parent_type == VM_UNINIT) {
+		if(!vm_alloc_page_with_initializer(parent_type, parent_va, parent_writable, parent_init, aux))
+			return false;
+	}
+	else if(parent_type != VM_UNINIT) {
 		if(!vm_alloc_page(parent_type, parent_va, parent_writable) || !vm_claim_page(parent_va)) {
 			return false;
 		}
+
 		struct page *child_page = spt_find_page(aux, parent_va);
 		memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE);
 	}
+
 }
 
 /* Initializes I for iterating hash table H.
