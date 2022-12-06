@@ -830,8 +830,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		struct file_page *fp = (struct file_page *)malloc(sizeof (struct file_page));
 		fp->file=file;
 		fp->ofs=ofs;
-		fp->page_read_byte=read_bytes;
-		fp->page_zero_byte=zero_bytes;
+		fp->page_read_byte = page_read_bytes;
+		fp->page_zero_byte = page_zero_bytes;
 		aux = fp;
 
 		/* VM_ANON으로 초기화 */

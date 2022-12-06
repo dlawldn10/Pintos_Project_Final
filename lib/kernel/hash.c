@@ -193,10 +193,10 @@ void hash_copy_each (struct hash_elem* he, void *aux) {
 	// 	setup_stack(&thread_current()->tf);
 	// }
  	if(parent_type == VM_UNINIT) {
-		if(!vm_alloc_page_with_initializer(parent_type, parent_va, parent_writable, parent_init, aux))
+		if(!vm_alloc_page_with_initializer(parent_page->uninit.type, parent_va, parent_writable, parent_init, aux))
 			return false;
 	}
-	else if(parent_type != VM_UNINIT) {
+	if(parent_type != VM_UNINIT) {
 		if(!vm_alloc_page(parent_type, parent_va, parent_writable) || !vm_claim_page(parent_va)) {
 			return false;
 		}

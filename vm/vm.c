@@ -190,9 +190,11 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
 
-	page = spt_find_page(spt, addr);
+	if (is_kernel_vaddr(addr)){
+		return false;
+	}
 
-	return vm_do_claim_page (page);
+	return vm_claim_page (addr);
 }
 
 /* Free the page.
@@ -244,13 +246,50 @@ supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
 }
 
 /* Copy supplemental page table from src to dst */
+// bool
+// supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
+// 		struct supplemental_page_table *src UNUSED) {
+	
+// 	src->spt_hash.aux = dst;
+// 	hash_apply(&src->spt_hash, hash_copy_each);
+
+// 	return true;
+// }
+
 bool
 supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 		struct supplemental_page_table *src UNUSED) {
-	
-	src->spt_hash.aux = dst;
-	hash_apply(&src->spt_hash, hash_copy_each);
+	struct hash_iterator i;
 
+	hash_first (&i, &src->spt_hash);
+
+	while (hash_next(&i)) {
+		struct page *parent_page = hash_entry(i.elem, struct page, hash_elem);
+
+		enum vm_type parent_type = parent_page->operations->type;
+		void *parent_va = parent_page->va;
+		bool parent_writable = parent_page->writable;
+		vm_initializer *parent_init = parent_page->uninit.init;
+		void *aux = parent_page->uninit.aux;
+
+
+		if(parent_type == VM_UNINIT) {
+			if(!vm_alloc_page_with_initializer(parent_page->uninit.type, parent_va, parent_writable, parent_init, aux)){
+				return false;
+			}
+		}
+
+		else if(parent_type != VM_UNINIT) {
+			if(!vm_alloc_page(parent_type, parent_va, parent_writable)) {
+				return false;
+			}
+			if(!vm_claim_page(parent_va)) {
+				return false;
+			}
+			struct page *child_page = spt_find_page(dst, parent_va);
+			memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE);
+		}
+	}
 	return true;
 }
 
