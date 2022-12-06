@@ -76,13 +76,12 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		switch(VM_TYPE(type)){
 			case VM_ANON:
 				initializer = anon_initializer;
-				// uninit_new(page, page->va,init, VM_ANON, aux, anon_initializer);
 				break;
 			case VM_FILE:
 				initializer = file_backed_initializer;
-				// uninit_new(page, page->va,init, VM_FILE, aux,file_backed_initializer);
 				break;
 		}
+		// 어떤 종류의 페이지로 초기화 될것인지 initializer를 설정한다. 지금 초기화하는 것은 아님.
 		uninit_new(page, upage, init, type, aux, initializer);
 		page->writable = writable;
 		return spt_insert_page(spt, page);
@@ -248,42 +247,11 @@ supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
 bool
 supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 		struct supplemental_page_table *src UNUSED) {
-	struct hash_iterator i;
-
-	hash_first (&i, &src->spt_hash);
 	
-	while (hash_next (&i)){
-		struct page *parent_page = hash_entry (hash_cur(&i), struct page, hash_elem);
-		enum vm_type type = page_get_type(parent_page);
-		void *upage = parent_page->va;
-		bool writable = parent_page->writable;
-		vm_initializer *init = parent_page->uninit.init;
-		void *aux = parent_page->uninit.aux;
+	src->spt_hash.aux = dst;
+	hash_apply(&src->spt_hash, hash_copy_each);
 
-		if(parent_page->uninit.type & VM_MARKER_0) {
-			setup_stack(&thread_current()->tf);
-		}
-		else if(parent_page->operations->type == VM_UNINIT) {
-			if(!vm_alloc_page_with_initializer(type, upage, writable, init, aux)) {
-				return false;
-			}
-			else {
-				if(!vm_alloc_page(type, upage, writable)) {
-					return false;
-				}
-				if (!vm_claim_page(upage)) {
-					return false;
-				}
-			}
-		}
-		if (parent_page->operations->type != VM_UNINIT) {
-			struct page *child_page = spt_find_page(dst, upage);
-			memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE);
-		}
-		return true;
-	}
-
-
+	return true;
 }
 
 /* Free the resource hold by the supplemental page table */
@@ -291,11 +259,6 @@ void
 supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
-	// struct hash_iterator i;
-
-	// hash_first (&i, &spt->spt_hash);
-	
-	// while (hash_next (&i)){ 
 }
 
 

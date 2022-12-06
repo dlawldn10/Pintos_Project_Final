@@ -156,11 +156,13 @@ int dup2(int oldfd, int newfd) {
 }
 
 /* Project2-2 User Memory Access */
+/* Project3 pml4_get_page부분 spt_find로 변경 */
 void check_address(void* addr){
 	struct thread* curr = thread_current();
-	if(!is_user_vaddr(addr) || addr == NULL || pml4_get_page(curr->pml4,addr) == NULL){
+	if(!is_user_vaddr(addr)){
 		exit(-1);
 	}
+	return spt_find_page(&curr->spt, addr);
 }
 
 /* Project2-3 System Call */

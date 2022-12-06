@@ -822,21 +822,20 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;//case 2 일때는 0
 
-		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 		/* Project 3 */
+		/* TODO: Set up aux to pass information to the lazy_load_segment. */
+		/* 해당 파일의 필요한 정보들을 구조체 형태로 fp 에 저장 후, 이후 aux로 전달*/
 		void *aux = NULL;
 		struct file_page *fp = (struct file_page *)malloc(sizeof (struct file_page));
-		/* 해당 파일의 필요한 정보들을 구조체 형태로 fp 에 저장 후, 이후 aux로 전달*/
 		fp->file=file;
 		fp->ofs=ofs;
 		fp->page_read_byte=read_bytes;
 		fp->page_zero_byte=zero_bytes;
 		aux = fp;
 
-		// aux = file;
-
-		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
-					writable, lazy_load_segment, (struct file_page *)aux))
+		/* VM_ANON으로 초기화 */
+		// file_backed인지 anon인지 어떻게 판단?
+		if (!vm_alloc_page_with_initializer (VM_ANON, upage, writable, lazy_load_segment, (struct file_page *)aux))
 			return false;
 
 		/* Advance. */
@@ -845,6 +844,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		upage += PGSIZE;
 		ofs += page_read_bytes;
 	}
+
 	return true;
 }
 

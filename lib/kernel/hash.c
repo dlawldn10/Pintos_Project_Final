@@ -10,6 +10,7 @@
 #include "threads/malloc.h"
 /* Project 3*/
 #include "include/vm/vm.h"
+#include "include/threads/vaddr.h"
 
 #define list_elem_to_hash_elem(LIST_ELEM)                       \
 	list_entry(LIST_ELEM, struct hash_elem, list_elem)
@@ -170,8 +171,30 @@ hash_apply (struct hash *h, hash_action_func *action) {
 	}
 }
 
-void hash_copy (struct hash_elem* he, void *aux) {
+void hash_copy_each (struct hash_elem* he, void *aux) {
+	
+	struct page *parent_page = hash_entry(he, struct page, hash_elem);
+	enum vm_type parent_type = parent_page->operations->type;
+	void *parent_va = parent_page->va;
+	bool parent_writable = parent_page->writable;
+	vm_initializer *parent_init = parent_page->uninit.init;
+	// void *aux = parent_page->uninit.aux;
 
+	// 이 if문은 없어도 돌아감
+	// if(parent_type & VM_MARKER_0) {
+	// 	setup_stack(&thread_current()->tf);
+	// }
+	// else if(parent_type == VM_UNINIT) {
+	// 	if(!vm_alloc_page_with_initializer(parent_type, parent_va, parent_writable, parent_init, aux))
+	// 		return false;
+	// }
+	if(parent_type != VM_UNINIT) {
+		if(!vm_alloc_page(parent_type, parent_va, parent_writable) || !vm_claim_page(parent_va)) {
+			return false;
+		}
+		struct page *child_page = spt_find_page(aux, parent_va);
+		memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE);
+	}
 }
 
 /* Initializes I for iterating hash table H.
