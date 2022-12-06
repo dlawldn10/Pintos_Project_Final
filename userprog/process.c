@@ -422,7 +422,7 @@ struct ELF64_PHDR {
 #define ELF ELF64_hdr
 #define Phdr ELF64_PHDR
 
-static bool setup_stack (struct intr_frame *if_);
+bool setup_stack (struct intr_frame *if_);
 static bool validate_segment (const struct Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		uint32_t read_bytes, uint32_t zero_bytes,
@@ -743,7 +743,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 }
 
 /* Create a minimal stack by mapping a zeroed page at the USER_STACK */
-static bool
+bool
 setup_stack (struct intr_frame *if_) {
 	uint8_t *kpage;
 	bool success = false;
@@ -772,7 +772,7 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
 
-	// lock_acquire(&vmlock);
+	//lock_acquire(&vmlock);
 	struct file_page *fp = aux;
 	
 	file_seek(fp->file, fp->ofs);
@@ -780,13 +780,13 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* Load this page. */
 	if (file_read (fp->file, page->frame->kva, fp->page_read_byte) != (int) fp->page_read_byte) {
 		palloc_free_page (page->frame->kva);
-		// free(aux);
-		// lock_release(&vmlock);
+		//free(aux);
+		//lock_release(&vmlock);
 		return false;
 	}
 	memset(page->frame->kva + fp->page_read_byte, 0, fp->page_zero_byte);
-	// free(aux);
-	// lock_release(&vmlock);
+	//free(aux);
+	//lock_release(&vmlock);
 	return true;
 }
 
@@ -849,7 +849,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 }
 
 /* Create a PAGE of stack at the USER_STACK. Return true on success. */
-static bool
+bool
 setup_stack (struct intr_frame *if_) {
 	bool success = false;
 	void *stack_bottom = (void *) (((uint8_t *) USER_STACK) - PGSIZE);

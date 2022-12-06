@@ -27,7 +27,7 @@ bool
 hash_init (struct hash *h,
 		hash_hash_func *hash, hash_less_func *less, void *aux) {
 	h->elem_cnt = 0;
-	h->bucket_cnt = 4;	//왜 4개???
+	h->bucket_cnt = 4;
 	h->buckets = malloc (sizeof *h->buckets * h->bucket_cnt);
 	h->hash = hash;
 	h->less = less;
@@ -168,6 +168,10 @@ hash_apply (struct hash *h, hash_action_func *action) {
 			action (list_elem_to_hash_elem (elem), h->aux);
 		}
 	}
+}
+
+void hash_copy (struct hash_elem* he, void *aux) {
+
 }
 
 /* Initializes I for iterating hash table H.
