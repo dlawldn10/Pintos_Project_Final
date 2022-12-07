@@ -3,6 +3,10 @@
 #include <stdbool.h>
 #include "threads/palloc.h"
 #include "lib/kernel/hash.h"
+
+/* Project 3*/
+struct lock vmlock; 
+
 enum vm_type {
 	/* page not initialized */
 	VM_UNINIT = 0,
@@ -17,6 +21,7 @@ enum vm_type {
 
 	/* Auxillary bit flag marker for store information. You can add more
 	 * markers, until the value is fit in the int. */
+	/* Project 3*/
 	VM_MARKER_0 = (1 << 3),
 	VM_MARKER_1 = (1 << 4),
 
