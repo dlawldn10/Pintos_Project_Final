@@ -72,6 +72,9 @@ syscall_init (void) {
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
+	#ifdef VM
+        thread_current()->rsp = f->rsp; 
+    #endif
 	// TODO: Your implementation goes here.
 	uint64_t number = f->R.rax;
 	switch (number)
@@ -157,8 +160,12 @@ int dup2(int oldfd, int newfd) {
 
 /* Project2-2 User Memory Access */
 void check_address(void* addr){
+	// struct thread* curr = thread_current();
+	// if(!is_user_vaddr(addr) || addr == NULL || pml4_get_page(curr->pml4,addr) == NULL){
+	// 	exit(-1);
+	// }
 	struct thread* curr = thread_current();
-	if(!is_user_vaddr(addr) || addr == NULL || pml4_get_page(curr->pml4,addr) == NULL){
+	if(!is_user_vaddr(addr) || addr == NULL || spt_find_page(&curr->spt, addr) == NULL){
 		exit(-1);
 	}
 }

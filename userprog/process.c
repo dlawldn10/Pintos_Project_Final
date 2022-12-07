@@ -270,7 +270,7 @@ process_exec (void *f_name) {
 
 	/* We first kill the current context */
 	process_cleanup ();
-
+	supplemental_page_table_init(&thread_current()->spt);
 	/* And then load the binary */
 	success = load (copy, &_if);
 	//hex_dump(_if.rsp,_if.rsp, USER_STACK - _if.rsp,true);
@@ -738,6 +738,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
 		upage += PGSIZE;
+		
 	}
 	return true;
 }
@@ -829,8 +830,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		/* 해당 파일의 필요한 정보들을 구조체 형태로 fp 에 저장 후, 이후 aux로 전달*/
 		fp->file=file;
 		fp->ofs=ofs;
-		fp->page_read_byte=read_bytes;
-		fp->page_zero_byte=zero_bytes;
+		fp->page_read_byte = page_read_bytes;
+		fp->page_zero_byte = page_zero_bytes;
 		aux = fp;
 
 		// aux = file;
@@ -867,6 +868,8 @@ setup_stack (struct intr_frame *if_) {
 		success = vm_claim_page(stack_bottom);
 		if (success) {
 			if_->rsp = USER_STACK;
+			// thread_current()->rsp = if_->rsp;
+			thread_current()->stack_bottom = stack_bottom;
 		}
 	}
 	return success;
