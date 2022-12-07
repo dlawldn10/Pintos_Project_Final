@@ -863,6 +863,7 @@ setup_stack (struct intr_frame *if_) {
 	// success = vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, true) && vm_claim_page(stack_bottom);
 	// if (success)
 	// 	if_->rsp = USER_STACK;
+	//
 
 	if (vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, true)) {
 		success = vm_claim_page(stack_bottom);
