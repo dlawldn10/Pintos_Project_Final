@@ -193,7 +193,7 @@ void hash_copy_each (struct hash_elem* he, void *aux) {
 	// 	setup_stack(&thread_current()->tf);
 	// }
  	if(parent_type == VM_UNINIT) {
-		if(!vm_alloc_page_with_initializer(parent_page->uninit.type, parent_va, parent_writable, parent_init, aux))
+		if(!vm_alloc_page_with_initializer(parent_page->uninit.type, parent_va, parent_writable, parent_init, parent_page->uninit.aux))
 			return false;
 	}
 	if(parent_type != VM_UNINIT) {
@@ -231,6 +231,7 @@ hash_first (struct hash_iterator *i, struct hash *h) {
 
 	i->hash = h;
 	i->bucket = i->hash->buckets;
+	/* hash elem */
 	i->elem = list_elem_to_hash_elem (list_head (i->bucket));
 }
 
