@@ -184,7 +184,18 @@ vm_get_frame(void)
 /* Growing the stack. */
 static void
 vm_stack_growth(void *addr UNUSED)
-{
+{	
+	// thread_current()->stack_bottom -= PGSIZE;
+	// printf("********%p\n",addr);
+	// printf("======stack bottom : %d\n",thread_current()->stack_bottom);
+
+	if (vm_alloc_page(VM_ANON | VM_MARKER_0, addr, true)) {
+		// if (vm_claim_page(thread_current()->stack_bottom)) {
+		if (vm_claim_page(addr)) {
+			thread_current()->stack_bottom -= PGSIZE;
+			//thread_current()->stack_bottom = pg_round_down(addr);
+		}
+	}
 }
 
 /* Handle the fault on write_protected page */
@@ -202,9 +213,32 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
 
-	page = spt_find_page(spt, addr);
+	if (is_kernel_vaddr(addr) || addr == NULL){
+		return false;
+	}
+	// if (USER_STACK - (1 << 20) > thread_current()->rsp){
+	// 	if (addr < thread_current()->rsp - 8 || addr > thread_current()->stack_bottom)
+	// 		return false;
+	// 	return false;
+	// }
+	// else if (thread_current()->stack_bottom > addr) {
+	// 	vm_stack_growth(thread_current()->stack_bottom - PGSIZE);
+	// 	return true;
+	// }
+	/* f->rsp가 user stack을 가리키고 있다면 그냥 그 stack pointer를 사용 
+	그러나 f->rsp kernel stack을 가리키고 있을 수 있다면, user stack을 키우는 것이 목적이므로 
+	thread 구조체에 저장해두었던 rsp 사용.*/
+	void *rsp =  is_kernel_vaddr(f->rsp) ? thread_current()->rsp : f->rsp;
+	// void *rsp = thread_current()->rsp;
+	// void *rsp = f->rsp;
 
-	return vm_do_claim_page(page);
+	void *stack_bottom = thread_current()->stack_bottom;
+	if(USER_STACK - (1 << 20) <=  rsp - 8 && rsp - 8 <= addr && addr <= stack_bottom) {
+		vm_stack_growth(stack_bottom - PGSIZE);
+		return true;
+	}
+
+	return vm_claim_page (addr);
 }
 
 /* Free the page.
@@ -260,6 +294,16 @@ void supplemental_page_table_init(struct supplemental_page_table *spt UNUSED)
 
 /* made by 수민 */
 /* Copy supplemental page table from src to dst */
+// bool
+// supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
+// 		struct supplemental_page_table *src UNUSED) {
+	
+// 	src->spt_hash.aux = dst;
+// 	hash_apply(&src->spt_hash, hash_copy_each);
+
+// 	return true;
+// }
+
 bool
 supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 		struct supplemental_page_table *src UNUSED) {
@@ -276,14 +320,8 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 		vm_initializer *parent_init = parent_page->uninit.init;
 		void *aux = parent_page->uninit.aux;
 
-		/* case1 : stack 영역의 페이지 인 경우*/
-		if (parent_type & VM_MARKER_0)
-		{
-			setup_stack(&thread_current()->tf);
-		}
 
-		/* case2 : stack 영역의 페이지 인 경우*/
-		else if(parent_type == VM_UNINIT) {
+		if(parent_type == VM_UNINIT) {
 			if(!vm_alloc_page_with_initializer(parent_page->uninit.type, parent_va, parent_writable, parent_init, aux)){
 				return false;
 			}
@@ -308,11 +346,7 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
-	// struct hash_iterator i;
-
-	// hash_first (&i, &spt->spt_hash);
-
-	// while (hash_next (&i)){
+	hash_destroy(&spt->spt_hash, hash_destory_each);
 }
 
 /* Project 3 */
