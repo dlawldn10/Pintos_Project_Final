@@ -567,6 +567,8 @@ init_thread (struct thread *t, const char *name, int priority) {
 	sema_init(&t->wait_sema,0);
 	sema_init(&t->free_sema,0);
 
+	/* Project 3*/
+	list_init(&t->mmap_list);
 	/* Advanced Scheduler */
 	t->nice = NICE_DEFAULT;
 	t->recent_cpu = RECENT_CPU_DEFAULT;

@@ -131,6 +131,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		break;
 	case SYS_MUNMAP:
 		munmap(f->R.rdi);
+		break;
 	default:
 		thread_exit();
 		break;
@@ -158,6 +159,7 @@ void *mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 
 void munmap(void *addr)
 {
+	do_munmap(addr);
 }
 
 int dup2(int oldfd, int newfd)

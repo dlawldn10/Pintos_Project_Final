@@ -9,6 +9,7 @@
 
 /*Project 3*/
 #include "include/vm/uninit.h"
+#include "include/vm/file.h"
 
 struct list frame_table;
 
@@ -59,7 +60,7 @@ static struct frame *vm_evict_frame(void);
 bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writable,
 									vm_initializer *init, void *aux)
 {
-
+	
 	ASSERT(VM_TYPE(type) != VM_UNINIT)
 
 	struct supplemental_page_table *spt = &thread_current()->spt;
@@ -67,6 +68,7 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page(spt, upage) == NULL)
 	{
+
 		// switch case 사용 예정
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
@@ -120,6 +122,7 @@ spt_find_page(struct supplemental_page_table *spt UNUSED, void *va UNUSED)
 bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 					 struct page *page UNUSED)
 {
+
 	bool succ = false;
 	/* TODO: Fill this function. */
 	if (!hash_insert(&spt->spt_hash, &page->hash_elem))
@@ -130,7 +133,7 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 void spt_remove_page(struct supplemental_page_table *spt, struct page *page)
 {
 	vm_dealloc_page(page);
-	return true;
+	// return true;
 }
 
 /* Get the struct frame, that will be evicted. */
@@ -223,7 +226,7 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 /* Free the page.
  * DO NOT MODIFY THIS FUNCTION. */
 void vm_dealloc_page(struct page *page)
-{
+{	
 	destroy(page);
 	free(page);
 }
