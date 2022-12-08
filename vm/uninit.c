@@ -44,6 +44,7 @@ uninit_new (struct page *page, void *va, vm_initializer *init,
 }
 
 /* Initalize the page on first fault */
+// static bool
 static bool
 uninit_initialize (struct page *page, void *kva) {
 	struct uninit_page *uninit = &page->uninit;
@@ -71,4 +72,8 @@ uninit_destroy (struct page *page) {
 	// 	free(page->frame);
 	// 	// free(uninit->aux);
 	// }
+	struct file_page *fp=(struct file_page *)(uninit->aux);
+	file_close(&fp->file);
+
+	// free(uninit->aux);
 }
