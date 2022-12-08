@@ -12,6 +12,9 @@
         "disk.h": "c",
         "vm.h": "c",
         "malloc.h": "c",
-        "thread.h": "c"
+        "thread.h": "c",
+        "inspect.h": "c",
+        "vaddr.h": "c",
+        "process.h": "c"
     }
 }
