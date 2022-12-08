@@ -872,6 +872,7 @@ setup_stack (struct intr_frame *if_) {
 			thread_current()->stack_bottom = stack_bottom;
 		}
 	}
+
 	return success;
 }
 /*   구현 후 스택의 모습

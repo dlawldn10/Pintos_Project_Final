@@ -185,15 +185,9 @@ vm_get_frame(void)
 static void
 vm_stack_growth(void *addr UNUSED)
 {	
-	// thread_current()->stack_bottom -= PGSIZE;
-	// printf("********%p\n",addr);
-	// printf("======stack bottom : %d\n",thread_current()->stack_bottom);
-
 	if (vm_alloc_page(VM_ANON | VM_MARKER_0, addr, true)) {
-		// if (vm_claim_page(thread_current()->stack_bottom)) {
 		if (vm_claim_page(addr)) {
 			thread_current()->stack_bottom -= PGSIZE;
-			//thread_current()->stack_bottom = pg_round_down(addr);
 		}
 	}
 }
@@ -216,24 +210,17 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	if (is_kernel_vaddr(addr) || addr == NULL){
 		return false;
 	}
-	// if (USER_STACK - (1 << 20) > thread_current()->rsp){
-	// 	if (addr < thread_current()->rsp - 8 || addr > thread_current()->stack_bottom)
-	// 		return false;
-	// 	return false;
-	// }
-	// else if (thread_current()->stack_bottom > addr) {
-	// 	vm_stack_growth(thread_current()->stack_bottom - PGSIZE);
-	// 	return true;
-	// }
+
 	/* f->rsp가 user stack을 가리키고 있다면 그냥 그 stack pointer를 사용 
 	그러나 f->rsp kernel stack을 가리키고 있을 수 있다면, user stack을 키우는 것이 목적이므로 
 	thread 구조체에 저장해두었던 rsp 사용.*/
 	void *rsp =  is_kernel_vaddr(f->rsp) ? thread_current()->rsp : f->rsp;
-	// void *rsp = thread_current()->rsp;
-	// void *rsp = f->rsp;
-
 	void *stack_bottom = thread_current()->stack_bottom;
-	if(USER_STACK - (1 << 20) <=  rsp - 8 && rsp - 8 <= addr && addr <= stack_bottom) {
+	/*먼저 addr이 stack영역 내의 주소값인지 검사*/
+	/*그리고, page fault를 유발한 주소(addr)과 user stack pointer(rsp)의 위치를 비교하여 
+	 page fault가 stack 영역이 부족해 발생한 것인지 판단*/
+	/* 즉, fault 발생 주소가 발생 주소가 스택 포인터 아래 8byte에 위치하는지. */
+	if(rsp - 8 <= addr && USER_STACK - (1 << 20) <= addr && addr <= stack_bottom ){
 		vm_stack_growth(stack_bottom - PGSIZE);
 		return true;
 	}
