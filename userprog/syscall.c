@@ -16,6 +16,7 @@
 
 /*Project 3*/
 #include "include/vm/vm.h"
+#include "include/vm/file.h"
 
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
@@ -126,7 +127,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		f->R.rax = dup2(f->R.rdi, f->R.rsi);
 		break;
 	case SYS_MMAP:
-		mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
+		f->R.rax = mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
 		break;
 	case SYS_MUNMAP:
 		munmap(f->R.rdi);
@@ -138,19 +139,21 @@ void syscall_handler(struct intr_frame *f UNUSED)
 
 void *mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 {
-	if (addr==NULL || length == 0)
+	if (offset % PGSIZE != 0)
 		return NULL;
-	if (pg_round_down(addr) != addr)
+	if (addr == NULL || length == 0)
 		return NULL;
-	if (spt_find_page(&thread_current()->spt,addr))
+	if (pg_round_down(addr) != addr || is_kernel_vaddr(addr))
 		return NULL;
-	if (fd == 1 || fd == 2)
+	if (spt_find_page(&thread_current()->spt, addr))
 		return NULL;
+	if (fd == 0 || fd == 1)
+		exit(-1);
 	struct file *file = find_file(fd);
-	if (!file)
+	if (file == NULL)
 		return NULL;
 
-	do_mmap(addr, length, writable, file, offset);
+	return do_mmap(addr, length, writable, file, offset);
 }
 
 void munmap(void *addr)
