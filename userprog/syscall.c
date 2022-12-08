@@ -36,8 +36,8 @@ unsigned tell (int fd);
 int add_file(struct file *file);
 int dup2(int oldfd, int newfd);
 void remove_file(int fd);
-
-
+void *mmap(void *addr, size_t length, int writable, int fd, off_t offset);
+void munmap(void *addr);
 
 /* System call.
  *
@@ -124,10 +124,22 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	case SYS_DUP2:	// project2 - extra
 		f->R.rax = dup2(f->R.rdi, f->R.rsi);
 		break;
+	case SYS_MMAP:
+		mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
+		break;
+	case SYS_MUNMAP:
+		munmap(f->R.rdi);
 	default:
 		thread_exit();
 		break;
 	}
+}
+
+void *mmap(void *addr, size_t length, int writable, int fd, off_t offset) {
+
+}
+void munmap(void *addr) {
+
 }
 
 int dup2(int oldfd, int newfd) {
