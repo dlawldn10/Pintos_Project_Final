@@ -74,17 +74,14 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		struct page *page = (struct page *)malloc(sizeof(struct page));
 		typedef bool (*initializerFunc)(struct page *, enum vm_type, void *);
 		initializerFunc initializer = NULL;
-		// page->va=upage;
 		/* TODO: Insert the page into the spt. */
 		switch (VM_TYPE(type))
 		{
 		case VM_ANON:
 			initializer = anon_initializer;
-			// uninit_new(page, page->va,init, VM_ANON, aux, anon_initializer);
 			break;
 		case VM_FILE:
 			initializer = file_backed_initializer;
-			// uninit_new(page, page->va,init, VM_FILE, aux,file_backed_initializer);
 			break;
 		}
 		uninit_new(page, upage, init, type, aux, initializer);
@@ -210,17 +207,13 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	if (is_kernel_vaddr(addr) || addr == NULL){
 		return false;
 	}
-
 	/* f->rsp가 user stack을 가리키고 있다면 그냥 그 stack pointer를 사용 
 	그러나 f->rsp kernel stack을 가리키고 있을 수 있다면, user stack을 키우는 것이 목적이므로 
 	thread 구조체에 저장해두었던 rsp 사용.*/
 	void *rsp =  is_kernel_vaddr(f->rsp) ? thread_current()->rsp : f->rsp;
+
 	void *stack_bottom = thread_current()->stack_bottom;
-	/*먼저 addr이 stack영역 내의 주소값인지 검사*/
-	/*그리고, page fault를 유발한 주소(addr)과 user stack pointer(rsp)의 위치를 비교하여 
-	 page fault가 stack 영역이 부족해 발생한 것인지 판단*/
-	/* 즉, fault 발생 주소가 발생 주소가 스택 포인터 아래 8byte에 위치하는지. */
-	if(rsp - 8 <= addr && USER_STACK - (1 << 20) <= addr && addr <= stack_bottom ){
+	if(USER_STACK - (1 << 20) <= addr && rsp - 8 <= addr && addr <= stack_bottom) {
 		vm_stack_growth(stack_bottom - PGSIZE);
 		return true;
 	}
@@ -275,21 +268,8 @@ vm_do_claim_page(struct page *page)
 /* Initialize new supplemental page table */
 void supplemental_page_table_init(struct supplemental_page_table *spt UNUSED)
 {
-	// struct hash pages;
 	hash_init(&spt->spt_hash, page_hash, page_less, NULL);
 }
-
-/* made by 수민 */
-/* Copy supplemental page table from src to dst */
-// bool
-// supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
-// 		struct supplemental_page_table *src UNUSED) {
-	
-// 	src->spt_hash.aux = dst;
-// 	hash_apply(&src->spt_hash, hash_copy_each);
-
-// 	return true;
-// }
 
 bool
 supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,

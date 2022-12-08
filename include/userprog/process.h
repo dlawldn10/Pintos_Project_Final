@@ -12,4 +12,9 @@ void process_activate (struct thread *next);
 bool install_page (void *upage, void *kpage, bool writable);
 bool setup_stack (struct intr_frame *if_);
 
+/* Project 3*/
+
+bool
+lazy_load_segment (struct page *page, void *aux);
+
 #endif /* userprog/process.h */

@@ -12,9 +12,6 @@
 #include "vm/vm.h"
 #include "include/vm/uninit.h"
 
-// static bool uninit_initialize (struct page *page, void *kva);
-// static void uninit_destroy (struct page *page);
-
 /* DO NOT MODIFY this struct */
 static const struct page_operations uninit_ops = {
 	.swap_in = uninit_initialize,
@@ -44,7 +41,6 @@ uninit_new (struct page *page, void *va, vm_initializer *init,
 }
 
 /* Initalize the page on first fault */
-// static bool
 static bool
 uninit_initialize (struct page *page, void *kva) {
 	struct uninit_page *uninit = &page->uninit;
@@ -67,13 +63,6 @@ uninit_destroy (struct page *page) {
 	struct uninit_page *uninit UNUSED = &page->uninit;
 	/* TODO: Fill this function.
 	 * TODO: If you don't have anything to do, just return. */
-	// if (page->frame!=NULL){
-	// 	list_remove(&page->frame->frame_elem);
-	// 	free(page->frame);
-	// 	// free(uninit->aux);
-	// }
 	struct file_page *fp=(struct file_page *)(uninit->aux);
 	file_close(&fp->file);
-
-	// free(uninit->aux);
 }

@@ -2,6 +2,11 @@
 /* file.c: Implementation of memory backed file object (mmaped object). */
 #include "vm/vm.h"
 
+/*Project 3 */
+#include "include/userprog/process.h"
+#include "include/threads/vaddr.h"
+#include <round.h>
+
 static bool file_backed_swap_in (struct page *page, void *kva);
 static bool file_backed_swap_out (struct page *page);
 static void file_backed_destroy (struct page *page);
@@ -50,6 +55,57 @@ file_backed_destroy (struct page *page) {
 void *
 do_mmap (void *addr, size_t length, int writable,
 		struct file *file, off_t offset) {
+	uint32_t zero_bytes = (ROUND_UP (length, PGSIZE) - length);
+	// printf("=========length %d \n",length);
+	// printf("=========zero_byte %d \n",zero_bytes);
+	fb_load_segment(file, offset, addr, length, zero_bytes, writable);
+	// printf("****************\n");
+
+}
+
+static bool //예) read_byte 11 + zero_bytes 1 = 4kb의배수
+fb_load_segment (struct file *file, off_t ofs, uint8_t *upage,
+		uint32_t read_bytes, uint32_t zero_bytes, bool writable) {
+	ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
+	ASSERT (pg_ofs (upage) == 0);
+	ASSERT (ofs % PGSIZE == 0);
+
+	/* 총 읽어와야 할 byte 를 다 읽어올 때 까지 반복 */
+	while (read_bytes > 0 || zero_bytes > 0) {
+		/* Do calculate how to fill this page.
+		 * We will read PAGE_READ_BYTES bytes from FILE
+		 * and zero the final PAGE_ZERO_BYTES bytes. */
+		/*[case 1] : read_bytes < PGSIZ 
+		  [case 2] : read_bytes >= PGSIZ*/
+		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+		size_t page_zero_bytes = PGSIZE - page_read_bytes;//case 2 일때는 0
+
+		/* TODO: Set up aux to pass information to the lazy_load_segment. */
+		/* Project 3 */
+		void *aux = NULL;
+		struct file_page *fp = (struct file_page *)malloc(sizeof (struct file_page));
+		/* 해당 파일의 필요한 정보들을 구조체 형태로 fp 에 저장 후, 이후 aux로 전달*/
+		fp->file=file;
+		fp->ofs=ofs;
+		fp->page_read_byte = page_read_bytes;
+		fp->page_zero_byte = page_zero_bytes;
+		aux = fp;
+
+		// aux = file;
+
+		if (!vm_alloc_page_with_initializer (VM_FILE, upage,
+					writable, lazy_load_segment, (struct file_page *)aux))
+			return false;
+
+
+		/* Advance. */
+		read_bytes -= page_read_bytes;
+		zero_bytes -= page_zero_bytes;
+		upage += PGSIZE;
+		ofs += page_read_bytes;
+	}
+
+	return true;
 }
 
 /* Do the munmap */
