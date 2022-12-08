@@ -767,7 +767,7 @@ setup_stack (struct intr_frame *if_) {
  * upper block. */
 /* 파일로부터 segement를 메모리로 load*/
 /* page_fault 발생 시 호출됨 */
-static bool
+bool
 lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
@@ -835,6 +835,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 					writable, lazy_load_segment, (struct file_page *)aux))
 			return false;
 
+
 		/* Advance. */
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
@@ -862,6 +863,7 @@ setup_stack (struct intr_frame *if_) {
 			thread_current()->stack_bottom = stack_bottom;
 		}
 	}
+
 	return success;
 }
 /*   구현 후 스택의 모습

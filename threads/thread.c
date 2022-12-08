@@ -587,6 +587,7 @@ next_thread_to_run (void) {
 }
 
 /* Use iretq to launch the thread */
+/* parameter로 받은 interrupt frame 구조체에 맞추어 CPU 주변의 register값들을 바꿔주는 함수*/
 void
 do_iret (struct intr_frame *tf) {
 	__asm __volatile(

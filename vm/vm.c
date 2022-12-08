@@ -214,7 +214,6 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 
 	void *stack_bottom = thread_current()->stack_bottom;
 	if(USER_STACK - (1 << 20) <= addr && rsp - 8 <= addr && addr <= stack_bottom) {
-		printf("===rsp : %p===\n", rsp);
 		vm_stack_growth(stack_bottom - PGSIZE);
 		return true;
 	}
