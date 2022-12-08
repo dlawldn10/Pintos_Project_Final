@@ -145,6 +145,7 @@ struct thread {
 	/* Project 3 - Stack*/
 	void* stack_bottom;
 	void* rsp;
+	struct list mmap_list;
 	
 #endif
 

@@ -9,6 +9,7 @@
 
 /*Project 3*/
 #include "include/vm/uninit.h"
+#include "include/vm/file.h"
 
 struct list frame_table;
 
@@ -132,7 +133,7 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 void spt_remove_page(struct supplemental_page_table *spt, struct page *page)
 {
 	vm_dealloc_page(page);
-	return true;
+	// return true;
 }
 
 /* Get the struct frame, that will be evicted. */
@@ -205,7 +206,6 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	struct page *page = NULL;
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
-
 	if (is_kernel_vaddr(addr) || addr == NULL){
 		return false;
 	}
@@ -226,7 +226,7 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 /* Free the page.
  * DO NOT MODIFY THIS FUNCTION. */
 void vm_dealloc_page(struct page *page)
-{
+{	
 	destroy(page);
 	free(page);
 }
