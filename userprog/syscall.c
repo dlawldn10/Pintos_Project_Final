@@ -142,7 +142,7 @@ void *mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 {
 	if (offset % PGSIZE != 0)
 		return NULL;
-	if (addr == NULL || length == 0)
+	if (addr == NULL || (long long)length <= 0)
 		return NULL;
 	if (pg_round_down(addr) != addr || is_kernel_vaddr(addr))
 		return NULL;
