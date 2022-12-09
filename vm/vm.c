@@ -10,6 +10,8 @@
 /*Project 3*/
 #include "include/vm/uninit.h"
 #include "include/vm/file.h"
+#include "include/threads/mmu.h"
+
 
 struct list frame_table;
 
@@ -142,7 +144,11 @@ vm_get_victim(void)
 {
 	struct frame *victim = NULL;
 	/* TODO: The policy for eviction is up to you. */
-
+	if(list_empty(&frame_table)) {
+		return NULL;
+	}
+	struct list_elem *e = list_pop_front(&frame_table);
+	victim = list_entry(e, struct frame, frame_elem);
 	return victim;
 }
 
@@ -153,7 +159,9 @@ vm_evict_frame(void)
 {
 	struct frame *victim UNUSED = vm_get_victim();
 	/* TODO: swap out the victim and return the evicted frame. */
-
+	if(swap_out(victim->page)){
+			return victim;
+	}
 	return NULL;
 }
 
@@ -173,9 +181,14 @@ vm_get_frame(void)
 	frame->kva = palloc_get_page(PAL_USER);
 	if (frame->kva != NULL)
 	{
-		list_push_back(&frame_table, &frame->frame_elem);
 		frame->page = NULL;
 	}
+	else
+	{
+		frame = vm_evict_frame();
+	}
+	list_push_back(&frame_table, &frame->frame_elem);
+
 	ASSERT(frame != NULL);
 	ASSERT(frame->page == NULL);
 	return frame;
