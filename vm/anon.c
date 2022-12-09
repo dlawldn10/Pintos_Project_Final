@@ -62,6 +62,16 @@ static bool
 anon_swap_in(struct page *page, void *kva)
 {
 	struct anon_page *anon_page = &page->anon;
+	int i = anon_page->idx;
+	swap_table->bits[i]=0;
+
+	for (int j=0;j<SECTORS_PER_PAGE;j++)
+		disk_read(swap_disk, i*SECTORS_PER_PAGE + j,kva+DISK_SECTOR_SIZE*j);
+	
+	if (install_page(page->va,kva,page->writable))
+		return true;
+	else
+		return false;
 }
 
 /* Swap out the page by writing contents to the swap disk. */
@@ -71,20 +81,19 @@ anon_swap_out(struct page *page)
 	struct anon_page *anon_page = &page->anon;
 	size_t cnt = swap_table->bit_cnt;
 	elem_type *bits_ary = swap_table->bits;
+
 	int i;
-	for (i = 0; i < cnt; i++)
-	{
-		if (bits_ary[i] == 0)
-		{
-			bits_ary[i] = true;
-			break;
-		}
-	}
-	if (i == cnt)
-		PANIC("Kernel panic in anon_swap_out");
+	i = bitmap_scan(swap_table,0,cnt,0);
+	if (i==BITMAP_ERROR)
+		return false;
+	swap_table->bits[i]=true;
 
 	anon_page->idx = i;
-	disk_write(swap_disk, i * SECTORS_PER_PAGE, page->va);
+	/* frame 해제 */
+	page->frame->page= NULL;
+	page->frame = NULL;
+	for (int j=0;j<SECTORS_PER_PAGE;j++)
+		disk_write(swap_disk, i * SECTORS_PER_PAGE + j, page->va+DISK_SECTOR_SIZE*j);
 }
 
 /* Destroy the anonymous page. PAGE will be freed by the caller. */
