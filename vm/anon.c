@@ -69,8 +69,8 @@ static bool
 anon_swap_out(struct page *page)
 {
 	struct anon_page *anon_page = &page->anon;
-	int cnt = swap_table->bit_cnt;
-	struct elem_type *bits_ary = swap_table->bits;
+	size_t cnt = swap_table->bit_cnt;
+	elem_type *bits_ary = swap_table->bits;
 	int i;
 	for (i = 0; i < cnt; i++)
 	{
