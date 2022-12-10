@@ -60,13 +60,11 @@ static bool
 file_backed_swap_out (struct page *page) {
 	struct file_page *file_page UNUSED = &page->file;
 	struct thread *cur = thread_current();
-
 	struct container *aux = page->uninit.aux;
 
 	if (pml4_is_dirty(cur->pml4, page->va)) {
 		file_write_at(aux->file, page->va, aux->page_read_byte,aux->ofs);
 		pml4_set_dirty(cur->pml4, page->va, 0);
-		
 	}
 
 	pml4_clear_page(cur->pml4, page->va);
