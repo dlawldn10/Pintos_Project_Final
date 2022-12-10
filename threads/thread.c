@@ -567,6 +567,8 @@ init_thread (struct thread *t, const char *name, int priority) {
 	sema_init(&t->wait_sema,0);
 	sema_init(&t->free_sema,0);
 
+	/* Project 3*/
+	list_init(&t->mmap_list);
 	/* Advanced Scheduler */
 	t->nice = NICE_DEFAULT;
 	t->recent_cpu = RECENT_CPU_DEFAULT;
@@ -587,6 +589,7 @@ next_thread_to_run (void) {
 }
 
 /* Use iretq to launch the thread */
+/* parameter로 받은 interrupt frame 구조체에 맞추어 CPU 주변의 register값들을 바꿔주는 함수*/
 void
 do_iret (struct intr_frame *tf) {
 	__asm __volatile(
