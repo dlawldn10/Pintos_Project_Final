@@ -326,9 +326,9 @@ process_exit (void) {
 	}
 	palloc_free_multiple(curr->fd_table,FDT_PAGES);
 	file_close(curr->running);
+	process_cleanup ();//추후 실험 필요
 	sema_up(&curr->wait_sema);
 	sema_down(&curr->free_sema);
-	process_cleanup ();//추후 실험 필요	
 }
 
 /* Free the current process's resources. */
@@ -337,7 +337,8 @@ process_cleanup (void) {
 	struct thread *curr = thread_current ();
 
 #ifdef VM
-	supplemental_page_table_kill (&curr->spt);
+	if(!hash_empty(&curr->spt.spt_hash))
+		supplemental_page_table_kill (&curr->spt);
 #endif
 
 	uint64_t *pml4;
