@@ -14,6 +14,7 @@
 
 
 struct list frame_table;
+struct list_elem *start = NULL;
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -30,6 +31,7 @@ void vm_init(void)
 
 	/* project 3*/
 	list_init(&frame_table);
+	start = list_begin(&frame_table);
 	lock_init(&vmlock);
 }
 
@@ -144,26 +146,33 @@ vm_get_victim(void)
 {
 	struct frame *victim = NULL;
 	/* TODO: The policy for eviction is up to you. */
-	    struct thread *curr = thread_current();
-    struct list_elem *e, *start;
+	struct thread *cur = thread_current();
+	struct list_elem *e = start;
+	struct frame *frame = NULL;
+	if(start == NULL) {
+		start = list_begin(&frame_table);
+	}
 
-    for(start = list_begin(&frame_table); start != list_end(&frame_table); start = list_next(start)){
-        victim = list_entry(start, struct frame, frame_elem);
-        if (pml4_is_accessed(curr->pml4, victim->page->va))
-            pml4_set_accessed(curr->pml4, victim->page->va,0);
-        else
-            return victim;
-    }
-    for(start = list_begin(&frame_table); start != e; start = list_next(start)){
-        victim = list_entry(start, struct frame, frame_elem);
-        if(pml4_is_accessed(curr->pml4, victim->page->va))
-            pml4_set_accessed(curr->pml4, victim->page->va, 0);
-        else
-            return victim;
-    }
+	for (start = e; start != list_tail(&frame_table); start = list_next(start)) {
+		frame = list_entry(start, struct frame, frame_elem);
+		if(pml4_is_accessed(cur->pml4, frame->page->va)) {
+			pml4_set_accessed(cur->pml4, frame->page->va, false);
+		}
+		else {
+			return frame;
+		}
+	}
 
-    return victim;
-
+	for (start = list_begin(&frame_table); start != list_tail(&frame_table); start = list_next(start)) {
+		frame = list_entry(start, struct frame, frame_elem);
+		if(pml4_is_accessed(cur->pml4, frame->page->va)) {
+			pml4_set_accessed(cur->pml4, frame->page->va, false);
+		}
+		else {
+			return frame;
+		}
+	}
+	return frame;
 }
 
 /* Evict one page and return the corresponding frame.
@@ -174,7 +183,7 @@ vm_evict_frame(void)
 	struct frame *victim UNUSED = vm_get_victim();
 	/* TODO: swap out the victim and return the evicted frame. */
 	if(swap_out(victim->page)){
-			return victim;
+		return victim;
 	}
 	return NULL;
 }

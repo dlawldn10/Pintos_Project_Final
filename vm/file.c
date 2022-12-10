@@ -7,6 +7,8 @@
 #include "include/threads/vaddr.h"
 #include <round.h>
 #include "include/threads/mmu.h"
+#include "include/devices/disk.h"
+#include "include/lib/kernel/bitmap.h"
 
 
 static bool file_backed_swap_in (struct page *page, void *kva);
@@ -38,12 +40,36 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 static bool
 file_backed_swap_in (struct page *page, void *kva) {
 	struct file_page *file_page UNUSED = &page->file;
+	
+	int i = file_page->idx;
+
+	if(bitmap_test(swap_table, i) == false) {
+		return false;
+	}
+
+	for (int j = 0; j < SECTORS_PER_PAGE; j++)
+		disk_read(swap_disk, i * SECTORS_PER_PAGE + j, kva + DISK_SECTOR_SIZE * j);
+	
+	bitmap_set(swap_table, i, false);
+	return true;
+
 }
 
 /* Swap out the page by writeback contents to the file. */
 static bool
 file_backed_swap_out (struct page *page) {
 	struct file_page *file_page UNUSED = &page->file;
+	struct thread *cur = thread_current();
+
+	struct container *aux = page->uninit.aux;
+
+	if (pml4_is_dirty(cur->pml4, page->va)) {
+		file_write_at(aux->file, page->va, aux->page_read_byte,aux->ofs);
+		pml4_set_dirty(cur->pml4, page->va, 0);
+	}
+
+	pml4_clear_page(cur->pml4, page->va);
+	return true;
 }
 
 /* Destory the file backed page. PAGE will be freed by the caller. */
