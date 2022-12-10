@@ -179,15 +179,14 @@ vm_get_frame(void)
 	frame = (struct frame *)malloc(sizeof(struct frame));
 	/* 유저풀에서 새로운 page 찾아서 시작주소값 반환 */
 	frame->kva = palloc_get_page(PAL_USER);
-	if (frame->kva != NULL)
-	{
-		frame->page = NULL;
-	}
-	else
+	if (frame->kva == NULL)
 	{
 		frame = vm_evict_frame();
+		frame->page = NULL;
+		return frame;
 	}
 	list_push_back(&frame_table, &frame->frame_elem);
+	frame->page = NULL;
 
 	ASSERT(frame != NULL);
 	ASSERT(frame->page == NULL);

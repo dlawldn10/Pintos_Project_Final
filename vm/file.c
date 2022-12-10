@@ -74,7 +74,7 @@ do_mmap (void *addr, size_t length, int writable,
 	while (read_bytes > 0 || zero_bytes > 0) {
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
-		struct file_page *fp = (struct file_page *)malloc(sizeof (struct file_page));
+		struct container *fp = (struct container *)malloc(sizeof (struct container));
 
 		fp->file=re_file;
 		fp->ofs=offset;
@@ -86,10 +86,10 @@ do_mmap (void *addr, size_t length, int writable,
 
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
-		fp->addr=addr;
+		// fp->addr=addr;
 		addr += PGSIZE;
 		/* munmap */
-		list_push_back(&thread_current()->mmap_list, &fp->file_elem);
+		//list_push_back(&thread_current()->mmap_list, &fp->file_elem);
 
 		offset += page_read_bytes;
 	}
@@ -101,22 +101,40 @@ void
 do_munmap (void *addr) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
      * TODO: writeback all the modified contents to the storage. */
-	struct list *m_list = &thread_current()->mmap_list;
-	struct list_elem *e = list_begin(m_list);
-	while (e != list_tail(m_list))
-	{
-		struct page *page = spt_find_page(&thread_current()->spt, addr);
-		struct file_page *fp = list_entry(e,struct file_page, file_elem);
-		/* 수정된 페이지(dirty bit==1)라면, 변경 사항을 파일(disk)에 다시 기록한다 */
-		if(pml4_is_dirty(thread_current()->pml4, page->va)){
-			/*buffer의내용을 file의 file_ofs부터 size만큼기록*/
-			file_write_at(fp->file,addr,fp->page_read_byte, fp->ofs);
-			 /* dirty bit을 0으로 만든다. */
-			pml4_set_dirty(thread_current()->pml4, page->va, false);
-		}
-		/* present bit을 0으로 만든다. */
-		pml4_clear_page(thread_current()->pml4, page->va);
-		addr += PGSIZE;
-		e = list_next(e);
-	}
+	// struct list *m_list = &thread_current()->mmap_list;
+	// struct list_elem *e = list_begin(m_list);
+	// while (e != list_tail(m_list))
+	// {
+	// 	struct page *page = spt_find_page(&thread_current()->spt, addr);
+	// 	// struct file_page *fp = list_entry(e,struct file_page, file_elem);
+	// 	struct container *fp = (struct container *)page->uninit.aux;
+	// 	/* 수정된 페이지(dirty bit==1)라면, 변경 사항을 파일(disk)에 다시 기록한다 */
+	// 	if(pml4_is_dirty(thread_current()->pml4, page->va)){
+	// 		/*buffer의내용을 file의 file_ofs부터 size만큼기록*/
+	// 		file_write_at(fp->file,addr,fp->page_read_byte, fp->ofs);
+	// 		 /* dirty bit을 0으로 만든다. */
+	// 		pml4_set_dirty(thread_current()->pml4, page->va, false);
+	// 	}
+	// 	/* present bit을 0으로 만든다. */
+	// 	pml4_clear_page(thread_current()->pml4, page->va);
+	// 	addr += PGSIZE;
+	// 	e = list_next(e);
+	// }
+		while (true) {
+        struct page* page = spt_find_page(&thread_current()->spt, addr);
+        
+        if (page == NULL)
+            break;
+
+        struct container * aux = (struct container *) page->uninit.aux;
+        
+        // dirty(사용되었던) bit 체크
+        if(pml4_is_dirty(thread_current()->pml4, page->va)) {
+            file_write_at(aux->file, addr, aux->page_read_byte, aux->ofs);
+            pml4_set_dirty (thread_current()->pml4, page->va, 0);
+        }
+
+        pml4_clear_page(thread_current()->pml4, page->va);
+        addr += PGSIZE;
+    }
 }

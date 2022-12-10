@@ -4,6 +4,7 @@
 #include "devices/disk.h"
 #include "include/threads/vaddr.h"
 #include "include/lib/kernel/bitmap.h"
+#include "include/threads/mmu.h"
 
 /* Project 3 - swap in,out */
 /*
@@ -63,15 +64,20 @@ anon_swap_in(struct page *page, void *kva)
 {
 	struct anon_page *anon_page = &page->anon;
 	int i = anon_page->idx;
-	swap_table->bits[i]=0;
 
-	for (int j = 0;j < SECTORS_PER_PAGE ; j++)
+	if(bitmap_test(swap_table, i) == false) {
+		return false;
+	}
+
+	for (int j = 0; j < SECTORS_PER_PAGE; j++)
 		disk_read(swap_disk, i * SECTORS_PER_PAGE + j, kva + DISK_SECTOR_SIZE * j);
 	
-	if (install_page(page->va,kva,page->writable))
-		return true;
-	else
-		return false;
+	// if (install_page(page->va,kva,page->writable))
+	// 	return true;
+	// else
+	// 	return false;
+	bitmap_set(swap_table, i, false);
+	return true;
 }
 
 /* Swap out the page by writing contents to the swap disk. */
@@ -79,28 +85,26 @@ static bool
 anon_swap_out(struct page *page)
 {
 	struct anon_page *anon_page = &page->anon;
-	size_t cnt = swap_table->bit_cnt;
-	elem_type *bits_ary = swap_table->bits;
+	// size_t cnt = swap_table->bit_cnt;
+	// elem_type *bits_ary = swap_table->bits;
 
-	size_t i;
-	i = bitmap_scan(swap_table, 0, cnt, 0);
+	size_t i = bitmap_scan(swap_table, 0, 1, 0);
 	if (i==BITMAP_ERROR)
 		return false;
-	swap_table->bits[i]=true;
+	// swap_table->bits[i]=true;
 
-	anon_page->idx = i;
+	// anon_page->idx = i;
 	/* frame 해제 */
-	page->frame->page= NULL;
-	page->frame = NULL;
-	printf("===i : %d===\n", i);
+	// page->frame->page= NULL;
+	// page->frame = NULL;
+
 	for (int j = 0; j < SECTORS_PER_PAGE; j++) {
-		printf("===swap_out : %d===\n", j);
-		printf("===spp : %d===\n", i * SECTORS_PER_PAGE + j);
-		printf("===address : %p===\n", page->va + DISK_SECTOR_SIZE * j);
-
 		disk_write(swap_disk, i * SECTORS_PER_PAGE + j, page->va + DISK_SECTOR_SIZE * j);
-
 	}
+	bitmap_set(swap_table, i, true);
+	pml4_clear_page(thread_current()->pml4, page->va);
+	anon_page->idx = i;
+	return true;
 }
 
 /* Destroy the anonymous page. PAGE will be freed by the caller. */
