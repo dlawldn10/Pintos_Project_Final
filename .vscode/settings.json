@@ -15,8 +15,6 @@
         "thread.h": "c",
         "inspect.h": "c",
         "vaddr.h": "c",
-        "process.h": "c",
-        "inttypes.h": "c",
-        "bitmap.h": "c"
+        "process.h": "c"
     }
 }
