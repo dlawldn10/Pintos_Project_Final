@@ -41,6 +41,8 @@ int dup2(int oldfd, int newfd);
 void remove_file(int fd);
 void *mmap(void *addr, size_t length, int writable, int fd, off_t offset);
 void munmap(void *addr);
+struct page * check_address2(void *addr);
+void check_valid_buffer(void* buffer, unsigned size, void* rsp, bool to_write);
 
 /* System call.
  *
@@ -103,9 +105,11 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		f->R.rax = filesize(f->R.rdi);
 		break;
 	case SYS_READ:
+		check_valid_buffer(f->R.rsi, f->R.rdx, f->rsp, 1);
 		f->R.rax = read(f->R.rdi, f->R.rsi, f->R.rdx);
 		break;
 	case SYS_WRITE:
+		check_valid_buffer(f->R.rsi, f->R.rdx, f->rsp, 0);
 		f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
 		break;
 	case SYS_FORK:
@@ -136,6 +140,24 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		thread_exit();
 		break;
 	}
+}
+
+void check_valid_buffer(void* buffer, unsigned size, void* rsp, bool to_write) {
+    for (int i = 0; i < size; i++) {
+        struct page* page = check_address2(buffer + i);    // 인자로 받은 buffer부터 buffer + size까지의 크기가 한 페이지의 크기를 넘을수도 있음
+        if(page == NULL)
+            exit(-1);
+        if(to_write == true && page->writable == false)
+            exit(-1);
+    }
+}
+
+struct page * check_address2(void *addr) {
+    if (is_kernel_vaddr(addr))
+    {
+        exit(-1);
+    }
+    return spt_find_page(&thread_current()->spt, addr);
 }
 
 void *mmap(void *addr, size_t length, int writable, int fd, off_t offset)
