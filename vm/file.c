@@ -47,8 +47,8 @@ file_backed_swap_in (struct page *page, void *kva) {
 		return false;
 	}
 
-	for (int j = 0; j < SECTORS_PER_PAGE; j++)
-		disk_read(swap_disk, i * SECTORS_PER_PAGE + j, kva + DISK_SECTOR_SIZE * j);
+	for (int j = 0; j < 8; j++)
+		disk_read(swap_disk, i * 8 + j, kva + DISK_SECTOR_SIZE * j);
 	
 	bitmap_set(swap_table, i, false);
 	return true;
@@ -60,7 +60,6 @@ static bool
 file_backed_swap_out (struct page *page) {
 	struct file_page *file_page UNUSED = &page->file;
 	struct thread *cur = thread_current();
-
 	struct container *aux = page->uninit.aux;
 
 	if (pml4_is_dirty(cur->pml4, page->va)) {

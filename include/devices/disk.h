@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <stdint.h>
+#include "threads/vaddr.h"
 
 /* Size of a disk sector in bytes. */
 #define DISK_SECTOR_SIZE 512
@@ -36,7 +37,6 @@ static struct disk *swap_disk;
 이 단위가 SECTORS_PER_PAGE! (8섹터 당 1페이지)
 */
 static struct bitmap *swap_table;
-// 페이지당 섹터 수(SECTORS_PER_PAGE)는 스왑 영역을 페이지 사이즈 단위로 관리하기 위한 값
-const size_t SECTORS_PER_PAGE = PGSIZE / DISK_SECTOR_SIZE; /* 4096/512 = 8 */
+
 
 #endif /* devices/disk.h */
