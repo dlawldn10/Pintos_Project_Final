@@ -243,7 +243,6 @@ pml4_set_page (uint64_t *pml4, void *upage, void *kpage, bool rw) {
 	return pte != NULL;
 }
 
-/* 페이지의 present bit 값을 0으로 만들어주는 함수 */
 /* Marks user virtual page UPAGE "not present" in page
  * directory PD.  Later accesses to the page will fault.  Other
  * bits in the page table entry are preserved.
@@ -263,7 +262,6 @@ pml4_clear_page (uint64_t *pml4, void *upage) {
 	}
 }
 
-/* 페이지의 dirty bit이 1이면 true를, 0이면 false를 리턴 */
 /* Returns true if the PTE for virtual page VPAGE in PML4 is dirty,
  * that is, if the page has been modified since the PTE was
  * installed.
@@ -274,7 +272,6 @@ pml4_is_dirty (uint64_t *pml4, const void *vpage) {
 	return pte != NULL && (*pte & PTE_D) != 0;
 }
 
-/* 인자로 받은 dirty의 값이 1이면 page의 dirty bit을 1로, 0이면 0으로 변경 */
 /* Set the dirty bit to DIRTY in the PTE for virtual page VPAGE
  * in PML4. */
 void

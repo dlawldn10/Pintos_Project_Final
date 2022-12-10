@@ -194,7 +194,6 @@ disk_get (int chan_no, int dev_no) {
 	return NULL;
 }
 
-/* disk의 사이즈가 몇 sector(512byte) 인지 확인해서 반환*/
 /* Returns the size of disk D, measured in DISK_SECTOR_SIZE-byte
    sectors. */
 disk_sector_t
