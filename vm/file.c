@@ -40,17 +40,11 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 static bool
 file_backed_swap_in (struct page *page, void *kva) {
 	struct file_page *file_page UNUSED = &page->file;
+	// struct thread *cur = thread_current();
+	struct container *aux = page->uninit.aux;
 	
-	int i = file_page->idx;
-
-	if(bitmap_test(swap_table, i) == false) {
-		return false;
-	}
-
-	for (int j = 0; j < 8; j++)
-		disk_read(swap_disk, i * 8 + j, kva + DISK_SECTOR_SIZE * j);
+	file_read_at(aux->file, page->va, aux->page_read_byte,aux->ofs);
 	
-	bitmap_set(swap_table, i, false);
 	return true;
 
 }
