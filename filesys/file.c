@@ -96,7 +96,6 @@ file_write (struct file *file, const void *buffer, off_t size) {
 	return bytes_written;
 }
 
-/* 물리 프레임에 변경된 데이터를 다시 디스크 파일에 업데이트해주는 함수. buffer에 있는 데이터를 size만큼, file의 file_ofs부터 써준다. */
 /* Writes SIZE bytes from BUFFER into FILE,
  * starting at offset FILE_OFS in the file.
  * Returns the number of bytes actually written,
