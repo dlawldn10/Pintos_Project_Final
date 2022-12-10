@@ -773,7 +773,7 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
 
-	struct file_page *fp = aux;
+	struct container *fp = aux;
 	
 	file_seek(fp->file, fp->ofs);
 
@@ -821,7 +821,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 		/* Project 3 */
 		void *aux = NULL;
-		struct file_page *fp = (struct file_page *)malloc(sizeof (struct file_page));
+		struct container *fp = (struct file_page *)malloc(sizeof (struct container));
 		/* 해당 파일의 필요한 정보들을 구조체 형태로 fp 에 저장 후, 이후 aux로 전달*/
 		fp->file=file;
 		fp->ofs=ofs;
@@ -832,7 +832,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		// aux = file;
 
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
-					writable, lazy_load_segment, (struct file_page *)aux))
+					writable, lazy_load_segment, (struct container*)aux))
 			return false;
 
 
