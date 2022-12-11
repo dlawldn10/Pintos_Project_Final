@@ -41,16 +41,17 @@ static bool
 file_backed_swap_in (struct page *page, void *kva) {
 	struct file_page *file_page UNUSED = &page->file;
 	
-	int i = file_page->idx;
-
-	if(bitmap_test(swap_table, i) == false) {
+	if (page==NULL)
 		return false;
-	}
-
-	for (int j = 0; j < 8; j++)
-		disk_read(swap_disk, i * 8 + j, kva + DISK_SECTOR_SIZE * j);
 	
-	bitmap_set(swap_table, i, false);
+	struct container *aux = page->uninit.aux;
+
+	file_seek(aux->file,aux->ofs);
+	file_read_at(aux->file,page->va,aux->page_read_byte,aux->ofs);
+	// if (file_read_at(aux->file,page->va,aux->page_read_byte,aux->ofs)!=(off_t)aux->page_read_byte);
+	// 	return false;
+
+	memset(kva+aux->page_read_byte,0,aux->page_zero_byte);
 	return true;
 
 }
@@ -153,12 +154,13 @@ do_munmap (void *addr) {
 
         struct container * aux = (struct container *) page->uninit.aux;
         
-        // dirty(사용되었던) bit 체크
+        /* dirty(사용되었던) bit 체크 */ 
         if(pml4_is_dirty(thread_current()->pml4, page->va)) {
             file_write_at(aux->file, addr, aux->page_read_byte, aux->ofs);
             pml4_set_dirty (thread_current()->pml4, page->va, 0);
         }
 
+		/* present bit 1 -> 0으로 변경*/
         pml4_clear_page(thread_current()->pml4, page->va);
         addr += PGSIZE;
     }
