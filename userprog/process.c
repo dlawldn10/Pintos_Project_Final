@@ -876,4 +876,3 @@ setup_stack (struct intr_frame *if_) {
 	------------------------- <---- stack_bottom
 */
 // #endif /* VM */
-

@@ -139,7 +139,7 @@ do_munmap (void *addr) {
 	// 	addr += PGSIZE;
 	// 	e = list_next(e);
 	// }
-		while (true) {
+	while (true) {
         struct page* page = spt_find_page(&thread_current()->spt, addr);
         
         if (page == NULL)
@@ -147,12 +147,13 @@ do_munmap (void *addr) {
 
         struct container * aux = (struct container *) page->uninit.aux;
         
-        // dirty(사용되었던) bit 체크
+        /* dirty(사용되었던) bit 체크 */ 
         if(pml4_is_dirty(thread_current()->pml4, page->va)) {
             file_write_at(aux->file, addr, aux->page_read_byte, aux->ofs);
             pml4_set_dirty (thread_current()->pml4, page->va, 0);
         }
 
+		/* present bit 1 -> 0으로 변경*/
         pml4_clear_page(thread_current()->pml4, page->va);
         addr += PGSIZE;
     }

@@ -65,4 +65,6 @@ uninit_destroy (struct page *page) {
 	 * TODO: If you don't have anything to do, just return. */
 	// struct container *fp = (struct container *)(uninit->aux);
 	// file_close(&fp->file);
+	// struct container *fp = (struct container *)(uninit->aux);
+	// file_close(&fp->file);
 }
