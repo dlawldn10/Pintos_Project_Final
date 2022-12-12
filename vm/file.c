@@ -47,7 +47,9 @@ file_backed_swap_in (struct page *page, void *kva) {
 	struct container *aux = page->uninit.aux;
 
 	file_seek(aux->file,aux->ofs);
+	lock_acquire(&vmlock);
 	file_read_at(aux->file,page->va,aux->page_read_byte,aux->ofs);
+	lock_release(&vmlock);
 	// if (file_read_at(aux->file,page->va,aux->page_read_byte,aux->ofs)!=(off_t)aux->page_read_byte);
 	// 	return false;
 
@@ -64,7 +66,9 @@ file_backed_swap_out (struct page *page) {
 	struct container *aux = page->uninit.aux;
 
 	if (pml4_is_dirty(cur->pml4, page->va)) {
+		lock_acquire(&vmlock);
 		file_write_at(aux->file, page->va, aux->page_read_byte,aux->ofs);
+		lock_release(&vmlock);
 		pml4_set_dirty(cur->pml4, page->va, 0);
 	}
 
@@ -162,6 +166,8 @@ do_munmap (void *addr) {
 
 		/* present bit 1 -> 0으로 변경*/
         pml4_clear_page(thread_current()->pml4, page->va);
+		spt_remove_page(&thread_current()->spt,page);
+		// free(page);
         addr += PGSIZE;
     }
 }

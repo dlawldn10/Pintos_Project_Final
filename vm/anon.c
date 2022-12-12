@@ -54,6 +54,7 @@ bool anon_initializer(struct page *page, enum vm_type type, void *kva)
 static bool
 anon_swap_in(struct page *page, void *kva)
 {
+	// printf("********anon_swap_");
 	struct anon_page *anon_page = &page->anon;
 	int i = anon_page->idx;
 
@@ -61,8 +62,12 @@ anon_swap_in(struct page *page, void *kva)
 		return false;
 	}
 
-	for (int j = 0; j < SECTORS_PER_PAGE; j++)
+	for (int j = 0; j < SECTORS_PER_PAGE; j++){
+		
+		lock_acquire(&vmlock);
 		disk_read(swap_disk, i * SECTORS_PER_PAGE + j, kva + DISK_SECTOR_SIZE * j);
+		lock_release(&vmlock);
+	}
 	
 	// if (install_page(page->va,kva,page->writable))
 	// 	return true;
@@ -91,7 +96,9 @@ anon_swap_out(struct page *page)
 	// page->frame = NULL;
 
 	for (int j = 0; j < SECTORS_PER_PAGE; j++) {
+		lock_acquire(&vmlock);
 		disk_write(swap_disk, i * SECTORS_PER_PAGE + j, page->va + DISK_SECTOR_SIZE * j);
+		lock_release(&vmlock);
 	}
 	bitmap_set(swap_table, i, true);
 	pml4_clear_page(thread_current()->pml4, page->va);

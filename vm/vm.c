@@ -136,7 +136,9 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 
 void spt_remove_page(struct supplemental_page_table *spt, struct page *page)
 {
-	vm_dealloc_page(page);
+	hash_delete(spt,&page->hash_elem);
+	// page=NULL;
+	// vm_dealloc_page(page);
 	// return true;
 }
 
