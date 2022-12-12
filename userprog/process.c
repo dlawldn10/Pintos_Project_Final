@@ -822,7 +822,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 		/* Project 3 */
 		void *aux = NULL;
-		struct container *fp = (struct file_page *)malloc(sizeof (struct container));
+		struct container *fp = (struct container *)malloc(sizeof (struct container));
 		/* 해당 파일의 필요한 정보들을 구조체 형태로 fp 에 저장 후, 이후 aux로 전달*/
 		fp->file=file;
 		fp->ofs=ofs;
