@@ -136,6 +136,7 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 
 void spt_remove_page(struct supplemental_page_table *spt, struct page *page)
 {
+	// hash_delete(&spt->spt_hash, &page->hash_elem);
 	vm_dealloc_page(page);
 	// return true;
 }
@@ -249,11 +250,12 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	그러나 f->rsp kernel stack을 가리키고 있을 수 있다면, user stack을 키우는 것이 목적이므로 
 	thread 구조체에 저장해두었던 rsp 사용.*/
 	void *rsp =  is_kernel_vaddr(f->rsp) ? thread_current()->rsp : f->rsp;
-
 	void *stack_bottom = thread_current()->stack_bottom;
-	if(USER_STACK - (1 << 20) <= addr && rsp - 8 <= addr && addr <= stack_bottom) {
-		vm_stack_growth(stack_bottom - PGSIZE);
-		return true;
+	if(not_present && write) {
+		if(USER_STACK - (1 << 20) <= addr && rsp - 8 <= addr && addr <= stack_bottom) {
+			vm_stack_growth(stack_bottom - PGSIZE);
+			return true;
+		}	
 	}
 
 	return vm_claim_page (addr);
