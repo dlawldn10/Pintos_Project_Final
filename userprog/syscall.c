@@ -255,9 +255,9 @@ void exit(int status)
 bool create(const char *file, unsigned initial_size)
 {
 	check_address(file);
-	// lock_acquire(&filesys_lock);
+	lock_acquire(&filesys_lock);
 	bool t = filesys_create(file, initial_size);
-	// lock_release(&filesys_lock);
+	lock_release(&filesys_lock);
 	return t;
 }
 

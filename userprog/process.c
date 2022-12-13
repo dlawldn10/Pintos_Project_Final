@@ -773,7 +773,7 @@ setup_stack (struct intr_frame *if_) {
 }
 
 
-#else
+#endif
 /* From here, codes will be used after project 3.
  * If you want to implement the function for only project 2, implement it on the
  * upper block. */
@@ -793,9 +793,7 @@ lazy_load_segment (struct page *page, void *aux) {
 	// 	lock_acquire(&filesys_lock);
 	// }
 	/* Load this page. */
-	lock_acquire(&filesys_lock);
 	off_t t = file_read (fp->file, page->frame->kva, fp->page_read_byte);
-	lock_release(&filesys_lock);
 
 	if (t != (int) fp->page_read_byte) {
 		palloc_free_page (page->frame->kva);
