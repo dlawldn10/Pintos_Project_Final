@@ -21,6 +21,6 @@ struct container {
 };
 
 bool lazy_load_segment (struct page *page, void *aux);
-struct lock vm_lock;
+// struct lock vm_lock;
 
 #endif /* userprog/process.h */
