@@ -66,6 +66,7 @@ static void
 initd (void *f_name) {
 #ifdef VM
 	supplemental_page_table_init (&thread_current ()->spt);
+	lock_init(&vm_lock);
 #endif
 
 	process_init ();
@@ -86,7 +87,7 @@ tid_t process_fork(const char *name, struct intr_frame *if_) {
 	struct thread *cur = thread_current();
 	memcpy(&cur->parent_if, if_, sizeof(struct intr_frame));
 
-	tid_t tid = thread_create(name, PRI_DEFAULT, __do_fork, cur);
+	tid_t tid = thread_create(name, PRI_DEFAULT + 1, __do_fork, cur);
 	if (tid == TID_ERROR) {
 		return TID_ERROR;
 	}
@@ -326,9 +327,9 @@ process_exit (void) {
 	}
 	palloc_free_multiple(curr->fd_table,FDT_PAGES);
 	file_close(curr->running);
-	sema_up(&curr->wait_sema);
-	sema_down(&curr->free_sema);
-	process_cleanup ();//추후 실험 필요	
+	process_cleanup ();//추후 실험 필요
+	sema_up(&curr->wait_sema); // 자식 process 종료할때까지 기다림
+	sema_down(&curr->free_sema); // 자식 process가 exit status 반환할 때 까지 기다림
 }
 
 /* Free the current process's resources. */
@@ -337,7 +338,8 @@ process_cleanup (void) {
 	struct thread *curr = thread_current ();
 
 #ifdef VM
-	supplemental_page_table_kill (&curr->spt);
+	if(!hash_empty(&curr->spt.spt_hash))
+		supplemental_page_table_kill (&curr->spt);
 #endif
 
 	uint64_t *pml4;
@@ -767,27 +769,22 @@ setup_stack (struct intr_frame *if_) {
  * upper block. */
 /* 파일로부터 segement를 메모리로 load*/
 /* page_fault 발생 시 호출됨 */
-static bool
+bool
 lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
 
-	//lock_acquire(&vmlock);
-	struct file_page *fp = aux;
+	struct container *fp = aux;
 	
 	file_seek(fp->file, fp->ofs);
 
 	/* Load this page. */
 	if (file_read (fp->file, page->frame->kva, fp->page_read_byte) != (int) fp->page_read_byte) {
 		palloc_free_page (page->frame->kva);
-		//free(aux);
-		//lock_release(&vmlock);
 		return false;
 	}
 	memset(page->frame->kva + fp->page_read_byte, 0, fp->page_zero_byte);
-	//free(aux);
-	//lock_release(&vmlock);
 	return true;
 }
 
@@ -826,7 +823,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 		/* Project 3 */
 		void *aux = NULL;
-		struct file_page *fp = (struct file_page *)malloc(sizeof (struct file_page));
+		struct container *fp = (struct container *)malloc(sizeof (struct container));
 		/* 해당 파일의 필요한 정보들을 구조체 형태로 fp 에 저장 후, 이후 aux로 전달*/
 		fp->file=file;
 		fp->ofs=ofs;
@@ -837,8 +834,9 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		// aux = file;
 
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
-					writable, lazy_load_segment, (struct file_page *)aux))
+					writable, lazy_load_segment, (struct container*)aux))
 			return false;
+
 
 		/* Advance. */
 		read_bytes -= page_read_bytes;
@@ -859,12 +857,6 @@ setup_stack (struct intr_frame *if_) {
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
-	//  VM_MARKER_0 = (1<<3)
-	// success = vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, true) && vm_claim_page(stack_bottom);
-	// if (success)
-	// 	if_->rsp = USER_STACK;
-	//
-
 	if (vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, true)) {
 		success = vm_claim_page(stack_bottom);
 		if (success) {
@@ -873,6 +865,7 @@ setup_stack (struct intr_frame *if_) {
 			thread_current()->stack_bottom = stack_bottom;
 		}
 	}
+
 	return success;
 }
 /*   구현 후 스택의 모습
@@ -884,4 +877,3 @@ setup_stack (struct intr_frame *if_) {
 	------------------------- <---- stack_bottom
 */
 // #endif /* VM */
-
