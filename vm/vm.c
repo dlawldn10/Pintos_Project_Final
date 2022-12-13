@@ -72,8 +72,6 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page(spt, upage) == NULL)
 	{
-
-		// switch case 사용 예정
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
@@ -136,9 +134,9 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 
 void spt_remove_page(struct supplemental_page_table *spt, struct page *page)
 {
-	hash_delete(spt,&page->hash_elem);
+	// hash_delete(spt,&page->hash_elem);
 	// page=NULL;
-	// vm_dealloc_page(page);
+	vm_dealloc_page(page);
 	// return true;
 }
 
