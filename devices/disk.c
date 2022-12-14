@@ -208,6 +208,8 @@ disk_size (struct disk *d) {
    room for DISK_SECTOR_SIZE bytes.
    Internally synchronizes accesses to disks, so external
    per-disk locking is unneeded. */
+/* 디스크 D의 SEC_NO번 섹터로부터 BUFFER로 읽어들이는데, 이때 반드시 DISK_SECTOR_SIZE 만큼의 공간이 있어야합니다.
+ * 내부적으로 디스크 접근 시 동기화를 진행하므로, 외부 locking을 필요로하지 않습니다.*/
 void
 disk_read (struct disk *d, disk_sector_t sec_no, void *buffer) {
 	struct channel *c;
