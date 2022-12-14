@@ -10,20 +10,20 @@
 struct fat_boot {
 	unsigned int magic;
 	unsigned int sectors_per_cluster; /* Fixed to 1 */
-	unsigned int total_sectors;
+	unsigned int total_sectors;	// 8*(1<<20)/512 = 16384?
 	unsigned int fat_start;
-	unsigned int fat_sectors; /* Size of FAT in sectors. */
+	unsigned int fat_sectors; /* Size of FAT in sectors. 128*/ 
 	unsigned int root_dir_cluster;
 };
 
 /* FAT FS */
 struct fat_fs {
-	struct fat_boot bs;
-	unsigned int *fat;
-	unsigned int fat_length;
-	disk_sector_t data_start;
-	cluster_t last_clst;
-	struct lock write_lock;
+	struct fat_boot bs;			//부팅 시 FAT 정보를 담는 구조체
+	unsigned int *fat;			//FAT array
+	unsigned int fat_length;	//파일 시스템에 있는 클러스터 수
+	disk_sector_t data_start;	//파일을 저장하기 위한 시작섹터번호
+	cluster_t last_clst;		//마지막 클러스터
+	struct lock write_lock;		
 };
 
 static struct fat_fs *fat_fs;
@@ -31,13 +31,16 @@ static struct fat_fs *fat_fs;
 void fat_boot_create (void);
 void fat_fs_init (void);
 
+/* FAT 테이블 초기화하는 함수 */
 void
 fat_init (void) {
+	// FAT 담을 공간을 커널풀에 할당 -> 구조체 자체는 위에 선언해둠.
 	fat_fs = calloc (1, sizeof (struct fat_fs));
 	if (fat_fs == NULL)
 		PANIC ("FAT init failed");
 
 	// Read boot sector from the disk
+	// 디스크에서 FAT 읽어서 calloc담은 공간에 저장
 	unsigned int *bounce = malloc (DISK_SECTOR_SIZE);
 	if (bounce == NULL)
 		PANIC ("FAT init failed");
@@ -135,6 +138,7 @@ fat_create (void) {
 	free (buf);
 }
 
+/* fat_boot bs 구조체 초기화*/
 void
 fat_boot_create (void) {
 	unsigned int fat_sectors =
@@ -153,6 +157,10 @@ fat_boot_create (void) {
 void
 fat_fs_init (void) {
 	/* TODO: Your code goes here. */
+	fat_fs->fat_length = fat_fs->bs.fat_sectors;
+	fat_fs->data_start = fat_fs->bs.fat_start;
+	// fat_fs->last_clst = 0; //???
+	lock_init(&fat_fs->write_lock);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -165,6 +173,20 @@ fat_fs_init (void) {
 cluster_t
 fat_create_chain (cluster_t clst) {
 	/* TODO: Your code goes here. */
+	int i;
+	for(i = 0; i <= fat_fs->bs.fat_sectors; i++) {
+		if (fat_get(fat_fs->bs.fat_start + i) == 0) {
+			if(clst == 0) {
+				fat_put(i, EOChain);
+			}
+			else {
+				fat_put(i, EOChain);
+				fat_put(clst, i);
+			}
+			return i;
+		}
+	}
+	return 0;
 }
 
 /* Remove the chain of clusters starting from CLST.
@@ -172,22 +194,40 @@ fat_create_chain (cluster_t clst) {
 void
 fat_remove_chain (cluster_t clst, cluster_t pclst) {
 	/* TODO: Your code goes here. */
+	if(clst > fat_fs->bs.fat_sectors) {
+		return;
+	}
+
+	cluster_t i = clst;
+	cluster_t val;
+	while(i != EOChain) {
+		val = fat_get(i);
+		fat_put(i, 0);
+		i = val;
+	}
+	if(pclst != 0) {
+		fat_put(pclst, EOChain);
+	}
 }
 
 /* Update a value in the FAT table. */
 void
 fat_put (cluster_t clst, cluster_t val) {
 	/* TODO: Your code goes here. */
+	fat_fs->fat[clst] = val;
+
 }
 
 /* Fetch a value in the FAT table. */
 cluster_t
 fat_get (cluster_t clst) {
 	/* TODO: Your code goes here. */
+	return fat_fs->fat[clst];
 }
 
 /* Covert a cluster # to a sector number. */
 disk_sector_t
 cluster_to_sector (cluster_t clst) {
 	/* TODO: Your code goes here. */
+	return clst;
 }

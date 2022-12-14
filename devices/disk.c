@@ -241,6 +241,7 @@ disk_write (struct disk *d, disk_sector_t sec_no, const void *buffer) {
 
 	c = d->channel;
 	lock_acquire (&c->lock);
+	/* disk's sector selection registers 에 sec_no 기록*/
 	select_sector (d, sec_no);
 	issue_pio_command (c, CMD_WRITE_SECTOR_RETRY);
 	if (!wait_while_busy (d))
