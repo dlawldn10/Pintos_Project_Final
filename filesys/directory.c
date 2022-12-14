@@ -7,6 +7,7 @@
 #include "threads/malloc.h"
 
 /* A directory. */
+/* 디렉토리 구조체 */
 struct dir {
 	struct inode *inode;                /* Backing store. */
 	off_t pos;                          /* Current position. */
@@ -28,10 +29,13 @@ dir_create (disk_sector_t sector, size_t entry_cnt) {
 
 /* Opens and returns the directory for the given INODE, of which
  * it takes ownership.  Returns a null pointer on failure. */
+/* 주어진 INODE에 대해 그 주인이 되는 디렉토리를 열고 반환합니다.
+ * 실패 시 NULL을 반환한다. */
 struct dir *
 dir_open (struct inode *inode) {
 	struct dir *dir = calloc (1, sizeof *dir);
 	if (inode != NULL && dir != NULL) {
+		// 디렉토리 초기화
 		dir->inode = inode;
 		dir->pos = 0;
 		return dir;
@@ -42,8 +46,8 @@ dir_open (struct inode *inode) {
 	}
 }
 
-/* Opens the root directory and returns a directory for it.
- * Return true if successful, false on failure. */
+/* Opens the root directory and returns a directory for it. */
+/* 루트 디렉토리를 열고 그를 위한 디렉토리를 반환합니다. */
 struct dir *
 dir_open_root (void) {
 	return dir_open (inode_open (ROOT_DIR_SECTOR));
@@ -57,6 +61,7 @@ dir_reopen (struct dir *dir) {
 }
 
 /* Destroys DIR and frees associated resources. */
+/* DIR을 제거하고 할당된 리소스를 free 합니다.*/
 void
 dir_close (struct dir *dir) {
 	if (dir != NULL) {
@@ -101,6 +106,10 @@ lookup (const struct dir *dir, const char *name,
  * and returns true if one exists, false otherwise.
  * On success, sets *INODE to an inode for the file, otherwise to
  * a null pointer.  The caller must close *INODE. */
+/* 파일의 NAME을 이용해 DIR을 찾고,
+ * 존재한다면 true를, 존재하지 않는다면 false를 리턴합니다. 
+ * 성공시, 파일의 inode에 *INODE를 세팅하며 실패시 null을 세팅합니다.
+ * 이 함수의 호출자는 반드시 *INODE를 닫아야합니다.*/
 bool
 dir_lookup (const struct dir *dir, const char *name,
 		struct inode **inode) {
@@ -201,6 +210,8 @@ done:
 /* Reads the next directory entry in DIR and stores the name in
  * NAME.  Returns true if successful, false if the directory
  * contains no more entries. */
+/* DIR 에서 다음 디렉토리 엔트리를 읽고 이름을 NAME에 저장합니다. 
+ * 성공 시 true를 반환하며, 디렉토리가 더이상 엔트리를 보유하고 있지 않다면 false를 반환합니다. */
 bool
 dir_readdir (struct dir *dir, char name[NAME_MAX + 1]) {
 	struct dir_entry e;

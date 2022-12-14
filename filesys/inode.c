@@ -99,6 +99,10 @@ inode_create (disk_sector_t sector, off_t length) {
 /* Reads an inode from SECTOR
  * and returns a `struct inode' that contains it.
  * Returns a null pointer if memory allocation fails. */
+/* inode 구조체 생성 */
+/* inode는 메타데이터 정보를 담고있는 512Byte의 inode_disk를 하나씩 가지고 있고, 
+   inode_disk는 실제 파일에 대한 메타데이터를 포함하고 있음*/
+/* 파일과 디렉토리 모두 inode를 하나씩 가리키는 inode 포인터를 가지고 있다 */
 struct inode *
 inode_open (disk_sector_t sector) {
 	struct list_elem *e;
