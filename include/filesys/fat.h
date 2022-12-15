@@ -35,4 +35,8 @@ cluster_t fat_get (cluster_t clst);
 void fat_put (cluster_t clst, cluster_t val);
 disk_sector_t cluster_to_sector (cluster_t clst);
 
+/* project 4*/
+cluster_t sector_to_cluster (disk_sector_t sect);
+disk_sector_t get_sector(disk_sector_t start, off_t pos);
+
 #endif /* filesys/fat.h */
