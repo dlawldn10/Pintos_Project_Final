@@ -234,6 +234,9 @@ disk_read (struct disk *d, disk_sector_t sec_no, void *buffer) {
    acknowledged receiving the data.
    Internally synchronizes accesses to disks, so external
    per-disk locking is unneeded. */
+/* DISK_SECTOR_SIZE 바이트를 포함해야 하는 BUFFER에서 디스크 D에 섹터 SEC_NO를 씁니다. 
+   디스크가 데이터 수신을 확인하면 리턴합니다.
+   디스크에 대한 액세스를 내부적으로 동기화하므로 외부 locking이 필요하지 않습니다.*/
 void
 disk_write (struct disk *d, disk_sector_t sec_no, const void *buffer) {
 	struct channel *c;

@@ -176,6 +176,7 @@ bitmap_set_all (struct bitmap *b, bool value) {
 }
 
 /* Sets the CNT bits starting at START in B to VALUE. */
+/* B의 START에서 시작하는 CNT 비트를 VALUE로 설정합니다.*/
 void
 bitmap_set_multiple (struct bitmap *b, size_t start, size_t cnt, bool value) {
 	size_t i;

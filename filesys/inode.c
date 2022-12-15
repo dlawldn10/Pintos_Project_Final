@@ -26,6 +26,7 @@ struct inode_disk {
 
 /* Returns the number of sectors to allocate for an inode SIZE
  * bytes long. */
+/* SIZE 바이트 길이의 inode를 할당하기 위한 섹터의 번호를 리턴합니다. */
 static inline size_t
 bytes_to_sectors (off_t size) {
 	return DIV_ROUND_UP (size, DISK_SECTOR_SIZE);
@@ -76,6 +77,9 @@ inode_init (void) {
  * disk.
  * Returns true if successful.
  * Returns false if memory or disk allocation fails. */
+/* LENGTH 바이트의 데이터를 가지고 inode를 초기화하고
+ * 파일 시스템 디스크의 섹터 SECTOR에 새로운 inode를 write 합니다. 
+ * 성공하면 true, 실패하면 false를 리턴합니다. */
 bool
 inode_create (disk_sector_t sector, off_t length) {
 	struct inode_disk *disk_inode = NULL;
@@ -85,6 +89,8 @@ inode_create (disk_sector_t sector, off_t length) {
 
 	/* If this assertion fails, the inode structure is not exactly
 	 * one sector in size, and you should fix that. */
+	/* 이 assertion이 실패하면, inode 구조체가 한 섹터 크기를 갖지 않는다는 말이므로
+	 * 당신은 이부분을 고쳐야 합니다. */
 	ASSERT (sizeof *disk_inode == DISK_SECTOR_SIZE);
 
 	disk_inode = calloc (1, sizeof *disk_inode);

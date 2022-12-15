@@ -22,6 +22,9 @@ free_map_init (void) {
  * the first into *SECTORP.
  * Returns true if successful, false if all sectors were
  * available. */
+/* free map 으로부터 CNT 개의 연속적인 섹터를 할당하고 
+ * *SECTORP 안에 첫번째 섹터를 넣습니다. 
+ * 성공하면 true, 실패하면 false를 리턴합니다. */
 bool
 free_map_allocate (size_t cnt, disk_sector_t *sectorp) {
 	disk_sector_t sector = bitmap_scan_and_flip (free_map, 0, cnt, false);
