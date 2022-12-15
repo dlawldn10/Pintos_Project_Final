@@ -10,9 +10,9 @@
 struct fat_boot {
 	unsigned int magic;
 	unsigned int sectors_per_cluster; /* Fixed to 1 */
-	unsigned int total_sectors;	// 8*(1<<20)/512 = 16384?
-	unsigned int fat_start;
-	unsigned int fat_sectors; /* Size of FAT in sectors. 128*/ 
+	unsigned int total_sectors;	//20,160개 (9.84MB)
+	unsigned int fat_start;	//1
+	unsigned int fat_sectors; /* Size of FAT in sectors. 157섹터(FAT자체의 크기)*/ 
 	unsigned int root_dir_cluster;
 };
 
@@ -20,7 +20,7 @@ struct fat_boot {
 struct fat_fs {
 	struct fat_boot bs;			//부팅 시 FAT 정보를 담는 구조체
 	unsigned int *fat;			//FAT array
-	unsigned int fat_length;	//파일 시스템에 있는 클러스터 수
+	unsigned int fat_length;	//20003 파일 시스템에 있는 클러스터 수
 	disk_sector_t data_start;	//파일을 저장하기 위한 시작섹터번호
 	cluster_t last_clst;		//마지막 클러스터
 	struct lock write_lock;		
@@ -51,6 +51,8 @@ fat_init (void) {
 	// Extract FAT info
 	if (fat_fs->bs.magic != FAT_MAGIC)
 		fat_boot_create ();
+	// printf("=============total_sectors: %d\n",fat_fs->bs.total_sectors);
+	// printf("=============fat_sectors: %d\n",fat_fs->bs.fat_sectors);
 	fat_fs_init ();
 }
 
@@ -147,7 +149,7 @@ fat_boot_create (void) {
 	fat_fs->bs = (struct fat_boot){
 	    .magic = FAT_MAGIC,
 	    .sectors_per_cluster = SECTORS_PER_CLUSTER,
-	    .total_sectors = disk_size (filesys_disk),
+	    .total_sectors = disk_size (filesys_disk),//20160 (9.84375MB)
 	    .fat_start = 1,
 	    .fat_sectors = fat_sectors,
 	    .root_dir_cluster = ROOT_DIR_CLUSTER,
@@ -157,8 +159,11 @@ fat_boot_create (void) {
 void
 fat_fs_init (void) {
 	/* TODO: Your code goes here. */
-	fat_fs->fat_length = fat_fs->bs.fat_sectors;
-	fat_fs->data_start = fat_fs->bs.fat_start;
+	/*fat_length: 파일 시스템에 얼마나 클러스터가 많은 지를 저장*/
+	/*20003 (20160, 20096)*/
+	fat_fs->fat_length = fat_fs->bs.total_sectors-fat_fs->bs.fat_sectors;
+	/*data_start: 파일 저장 시작할 수 있는 섹터 위치 저장 => DATA Sector 시작 지점*/
+	fat_fs->data_start = fat_fs->bs.fat_start+fat_fs->bs.fat_sectors;
 	// fat_fs->last_clst = 0; //???
 	lock_init(&fat_fs->write_lock);
 }
@@ -174,7 +179,7 @@ cluster_t
 fat_create_chain (cluster_t clst) {
 	/* TODO: Your code goes here. */
 	int i;
-	for(i = 0; i <= fat_fs->bs.fat_sectors; i++) {
+	for(i = 0; i <= fat_fs->fat_length; i++) {
 		if (fat_get(fat_fs->bs.fat_start + i) == 0) {
 			if(clst == 0) {
 				fat_put(i, EOChain);
@@ -194,7 +199,7 @@ fat_create_chain (cluster_t clst) {
 void
 fat_remove_chain (cluster_t clst, cluster_t pclst) {
 	/* TODO: Your code goes here. */
-	if(clst > fat_fs->bs.fat_sectors) {
+	if(clst > fat_fs->fat_length) {
 		return;
 	}
 
@@ -229,5 +234,31 @@ fat_get (cluster_t clst) {
 disk_sector_t
 cluster_to_sector (cluster_t clst) {
 	/* TODO: Your code goes here. */
-	return clst;
+	return clst+fat_fs->bs.fat_sectors;
+}
+cluster_t
+sector_to_cluster (disk_sector_t sect) {
+	/* TODO: Your code goes here. */
+	return sect-fat_fs->bs.fat_sectors;
+}
+
+disk_sector_t
+get_sector(disk_sector_t start, off_t pos){
+	cluster_t start_clst = sector_to_cluster(start);
+	
+	int i=0;
+	for (i=0; i<pos/DISK_SECTOR_SIZE;i++){
+		start_clst=fat_get(start_clst);
+		if (start_clst == EOChain || start_clst == 0) {
+			return -1;
+		}
+	}
+	return cluster_to_sector(start_clst);
+	// int i;
+	// for(i = start_clst; i <= fat_fs->fat_length; i=fat_get(i)) {
+	// 	if(i == start_clst + pos/DISK_SECTOR_SIZE){
+	// 		return fat_get(i);
+	// 	}
+	// }
+	// return 0;
 }

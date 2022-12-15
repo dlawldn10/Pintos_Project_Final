@@ -7,6 +7,9 @@
 #include "filesys/free-map.h"
 #include "threads/malloc.h"
 
+/* project 4 */
+#include "include/filesys/fat.h"
+
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
 
@@ -46,8 +49,14 @@ struct inode {
 static disk_sector_t
 byte_to_sector (const struct inode *inode, off_t pos) {
 	ASSERT (inode != NULL);
-	if (pos < inode->data.length)
-		return inode->data.start + pos / DISK_SECTOR_SIZE;
+
+	if (pos < inode->data.length){
+		#ifdef EFILESYS
+			return get_sector(inode->data.start,pos);
+		#else
+			return inode->data.start + pos / DISK_SECTOR_SIZE;
+		#endif
+	}
 	else
 		return -1;
 }
