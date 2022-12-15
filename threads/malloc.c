@@ -81,6 +81,8 @@ malloc_init (void) {
 
 /* Obtains and returns a new block of at least SIZE bytes.
    Returns a null pointer if memory is not available. */
+/* 최소 SIZE 바이트의 새로운 블록을 얻고 리턴합니다. 
+   메모리가 사용 가능하지 않다면 null을 리턴합니다. */
 void *
 malloc (size_t size) {
 	struct desc *d;
@@ -145,6 +147,8 @@ malloc (size_t size) {
 
 /* Allocates and return A times B bytes initialized to zeroes.
    Returns a null pointer if memory is not available. */
+/* 0으로 초기화된 A * B 바이트를 할당하고 반환합니다.
+   메모리를 사용할 수 없는 경우 null을 반환합니다. */
 void *
 calloc (size_t a, size_t b) {
 	void *p;
@@ -198,6 +202,8 @@ realloc (void *old_block, size_t new_size) {
 
 /* Frees block P, which must have been previously allocated with
    malloc(), calloc(), or realloc(). */
+/* 이전에 malloc(), calloc(), 또는 realloc()으로 할당되었을
+   블록 p를 free 합니다. */
 void
 free (void *p) {
 	if (p != NULL) {

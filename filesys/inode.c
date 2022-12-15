@@ -153,6 +153,9 @@ inode_get_inumber (const struct inode *inode) {
 /* Closes INODE and writes it to disk.
  * If this was the last reference to INODE, frees its memory.
  * If INODE was also a removed inode, frees its blocks. */
+/* INODE를 닫고 디스크에 내용을 씁니다.
+ * 만약 INODE를 향한 마지막 참조였다면, 해당 메모리를 free 합니다. 
+ * 만약 INODE가 이미 제거된 inode 였을 경우. 해당 블록을 free 합니다.*/
 void
 inode_close (struct inode *inode) {
 	/* Ignore null pointer. */
@@ -298,7 +301,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 
 /* Disables writes to INODE.
    May be called at most once per inode opener. */
-	void
+void
 inode_deny_write (struct inode *inode) 
 {
 	inode->deny_write_cnt++;
