@@ -26,7 +26,7 @@ struct inode_disk {
 
 /* Returns the number of sectors to allocate for an inode SIZE
  * bytes long. */
-/* SIZE 바이트 길이의 inode를 할당하기 위한 섹터의 번호를 리턴합니다. */
+/* SIZE 바이트 길이의 inode를 할당하기 위한 섹터의 수를 리턴합니다. */
 static inline size_t
 bytes_to_sectors (off_t size) {
 	return DIV_ROUND_UP (size, DISK_SECTOR_SIZE);
@@ -51,14 +51,17 @@ static disk_sector_t
 byte_to_sector (const struct inode *inode, off_t pos) {
 	ASSERT (inode != NULL);
 
+	// printf("==========byte_to_sector 진입 inode->data.length : %d \n",inode->data.length);
 	if (pos < inode->data.length){
 		#ifdef EFILESYS
 			return get_sector(inode->data.start, pos);
 		#else
+			// printf("==========byte_to_sector 진입 #else\n");
 			return inode->data.start + pos / DISK_SECTOR_SIZE;
 		#endif
 	}
 	else
+		// printf("==========byte_to_sector 진입 return -1\n");
 		return -1;
 }
 
@@ -102,7 +105,6 @@ inode_create (disk_sector_t sector, off_t length) {
 		#ifdef EFILESYS
 			/* 파일의 첫번째 클러스터 번호 받기 */
 			cluster_t start = fat_create_chain(0);
-			
 			if (!start) {
 				free(disk_inode);
 				return false;
@@ -114,6 +116,7 @@ inode_create (disk_sector_t sector, off_t length) {
 
 			if (sectors > 0) {
 				static char zeros[DISK_SECTOR_SIZE];
+
 				size_t i;
 				cluster_t clst = start;
 				disk_write (filesys_disk, cluster_to_sector(start), zeros);
@@ -244,6 +247,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) {
 
 	while (size > 0) {
 		/* Disk sector to read, starting byte offset within sector. */
+		// printf("!!!!!=========byte_to_sector 진입전 inode->data.length : %d \n",inode->data.length);
 		disk_sector_t sector_idx = byte_to_sector (inode, offset);
 		int sector_ofs = offset % DISK_SECTOR_SIZE;
 
@@ -296,35 +300,36 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 	uint8_t *bounce = NULL;
 	uint8_t zero[512];
 	memset(zero, 0, DISK_SECTOR_SIZE);
-
-	if (inode->deny_write_cnt)
+	if (inode->deny_write_cnt){
 		return 0;
-	// #ifdef EFILESYS
-	// 	disk_sector_t sect = byte_to_sector(inode, offset + size);
+	}
+	#ifdef EFILESYS
+		disk_sector_t sect = byte_to_sector(inode, offset + size);
+		disk_sector_t sectors=0;
+		if (sect == -1) {
+			sectors = DIV_ROUND_UP(offset + size - inode->data.length, 512);
+			cluster_t clst = sector_to_cluster(byte_to_sector(inode, inode_length(inode) - 1));
+			for (int i = 0; i < sectors; i++) {
+				clst = fat_create_chain(clst);
+				if(clst == 0) {
+					break;
+				}
+				disk_write(filesys_disk, cluster_to_sector(clst), zero);
+				// disk_write(filesys_disk, , zero);
+			}
+		}
+		inode->data.length+=sectors*DISK_SECTOR_SIZE;
+		// disk_sector_t write_sect = byte_to_sector(inode,offset);
+		// cluster_t write_clst = sector_to_cluster(write_sect);
+		// while(write_clst != EOChain){
+		// 	disk_write(filesys_disk, cluster_to_sector(write_clst), buffer + bytes_written);
+		// 	write_clst = fat_get(write_clst);
+		// 	bytes_written += DISK_SECTOR_SIZE;
+		// }
 
-	// 	if (sect == -1) {
-	// 		disk_sector_t sectors = DIV_ROUND_UP(offset + size - inode->data.length, 512);
-	// 		cluster_t clst = sector_to_cluster(byte_to_sector(inode, inode_length(inode) - 1));
-	// 		for (int i = 0; i < sectors; i++) {
-	// 			clst = fat_create_chain(clst);
-	// 			if(clst == 0) {
-	// 				break;
-	// 			}
-	// 			disk_write(filesys_disk, cluster_to_sector(clst), zero);
-	// 			// disk_write(filesys_disk, , zero);
-	// 		}
-	// 	}
-	// 	disk_sector_t write_sect = byte_to_sector(inode,offset);
-	// 	cluster_t write_clst = sector_to_cluster(write_sect);
-	// 	while(write_clst != EOChain){
-	// 		disk_write(filesys_disk, cluster_to_sector(write_clst), buffer + bytes_written);
-	// 		write_clst = fat_get(write_clst);
-	// 		bytes_written += DISK_SECTOR_SIZE;
-	// 	}
-
-
-	// #else
+	#endif
 		while (size > 0) {
+
 			/* Sector to write, starting byte offset within sector. */
 			// offest = 512+462 = 974  | 50
 			disk_sector_t sector_idx = byte_to_sector (inode, offset);
@@ -367,10 +372,9 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 			offset += chunk_size;
 			bytes_written += chunk_size;
 		}
-	// #endif
 
 	free (bounce);
-
+	// printf("=========bytes_written : %d\n",bytes_written);
 	return bytes_written;
 }
 

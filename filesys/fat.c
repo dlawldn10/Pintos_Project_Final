@@ -20,7 +20,7 @@ struct fat_boot {
 struct fat_fs {
 	struct fat_boot bs;			//부팅 시 FAT 정보를 담는 구조체
 	unsigned int *fat;			//FAT array
-	unsigned int fat_length;	//20003 파일 시스템에 있는 클러스터 수
+	unsigned int fat_length;	//20096 파일 시스템에 있는 클러스터 수
 	disk_sector_t data_start;	//파일을 저장하기 위한 시작섹터번호
 	cluster_t last_clst;		//마지막 클러스터
 	struct lock write_lock;		
@@ -244,6 +244,8 @@ sector_to_cluster (disk_sector_t sect) {
 disk_sector_t
 get_sector(disk_sector_t start, off_t pos){
 	cluster_t start_clst = sector_to_cluster(start);
+	// printf("get_sector========disk_sector_t : %d\n",start);
+	// cluster_t start_clst = start;
 	
 	for (unsigned i = 0; i < pos / DISK_SECTOR_SIZE; i++){
 		start_clst = fat_get(start_clst);
@@ -252,4 +254,14 @@ get_sector(disk_sector_t start, off_t pos){
 		}
 	}
 	return cluster_to_sector(start_clst);
+}
+
+
+void print_fat(){
+	printf("\n===================print FAT====================================================================================\n");
+	for(int i = 0; i < 200; i++){
+		printf(" [%4d|%10d] ", i, fat_fs->fat[i]);
+		if(i%5 == 4) printf("\n");
+	}
+	printf("\n================================================================================================================\n");
 }

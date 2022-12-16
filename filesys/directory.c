@@ -5,7 +5,9 @@
 #include "filesys/filesys.h"
 #include "filesys/inode.h"
 #include "threads/malloc.h"
-#include "include/filesys/fat.h"
+
+/*project 4*/
+#include "filesys/fat.h"
 
 /* A directory. */
 /* 디렉토리 구조체 */
@@ -51,7 +53,8 @@ dir_open (struct inode *inode) {
 /* 루트 디렉토리를 열고 그를 위한 디렉토리를 반환합니다. */
 struct dir *
 dir_open_root (void) {
-	disk_sector_t root = cluster_to_sector(ROOT_DIR_CLUSTER);
+	/*project 4*/
+	disk_sector_t root = cluster_to_sector(ROOT_DIR_SECTOR);
 	return dir_open (inode_open (root));
 }
 
