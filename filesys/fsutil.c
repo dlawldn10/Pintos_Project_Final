@@ -117,7 +117,7 @@ fsutil_put (char **argv) {
 		PANIC ("%s: invalid file size %d", file_name, size);
 
 	/* Create destination file. */
-	// print_fat();
+	// printf("========filesys_create\n");
 	if (!filesys_create (file_name, size))
 		PANIC ("%s: create failed", file_name);
 	dst = filesys_open (file_name);
@@ -125,6 +125,7 @@ fsutil_put (char **argv) {
 		PANIC ("%s: open failed", file_name);
 
 	/* Do copy. */
+	// printf("========file_write\n");
 	while (size > 0) {
 		int chunk_size = size > DISK_SECTOR_SIZE ? DISK_SECTOR_SIZE : size;
 		disk_read (src, sector++, buffer);

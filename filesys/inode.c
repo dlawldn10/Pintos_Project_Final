@@ -303,39 +303,36 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 	if (inode->deny_write_cnt){
 		return 0;
 	}
-	// #ifdef EFILESYS
-	// 	disk_sector_t sect = byte_to_sector(inode, offset + size);
+	#ifdef EFILESYS
+		disk_sector_t sect = byte_to_sector(inode, offset + size);
+		disk_sector_t sectors=0;
+		if (sect == -1) {
+			sectors = DIV_ROUND_UP(offset + size - inode->data.length, 512);
+			cluster_t clst = sector_to_cluster(byte_to_sector(inode, inode_length(inode) - 1));
+			for (int i = 0; i < sectors; i++) {
+				clst = fat_create_chain(clst);
+				if(clst == 0) {
+					break;
+				}
+				disk_write(filesys_disk, cluster_to_sector(clst), zero);
+				// disk_write(filesys_disk, , zero);
+			}
+		}
+		inode->data.length+=sectors*DISK_SECTOR_SIZE;
+		// disk_sector_t write_sect = byte_to_sector(inode,offset);
+		// cluster_t write_clst = sector_to_cluster(write_sect);
+		// while(write_clst != EOChain){
+		// 	disk_write(filesys_disk, cluster_to_sector(write_clst), buffer + bytes_written);
+		// 	write_clst = fat_get(write_clst);
+		// 	bytes_written += DISK_SECTOR_SIZE;
+		// }
 
-	// 	if (sect == -1) {
-	// 		disk_sector_t sectors = DIV_ROUND_UP(offset + size - inode->data.length, 512);
-	// 		cluster_t clst = sector_to_cluster(byte_to_sector(inode, inode_length(inode) - 1));
-	// 		for (int i = 0; i < sectors; i++) {
-	// 			clst = fat_create_chain(clst);
-	// 			if(clst == 0) {
-	// 				break;
-	// 			}
-	// 			disk_write(filesys_disk, cluster_to_sector(clst), zero);
-	// 			// disk_write(filesys_disk, , zero);
-	// 		}
-	// 	}
-	// 	disk_sector_t write_sect = byte_to_sector(inode,offset);
-	// 	cluster_t write_clst = sector_to_cluster(write_sect);
-	// 	while(write_clst != EOChain){
-	// 		disk_write(filesys_disk, cluster_to_sector(write_clst), buffer + bytes_written);
-	// 		write_clst = fat_get(write_clst);
-	// 		bytes_written += DISK_SECTOR_SIZE;
-	// 	}
-
-	// #else
+	#endif
 		while (size > 0) {
 
 			/* Sector to write, starting byte offset within sector. */
 			// offest = 512+462 = 974  | 50
 			disk_sector_t sector_idx = byte_to_sector (inode, offset);
-			// printf("++++++++++++++++inode : %d\n",inode);
-			// printf("++++++++++++++++offset : %d\n",offset);
-			// printf("++++++++++++++++sector_idx : %d\n",sector_idx);
-
 			int sector_ofs = offset % DISK_SECTOR_SIZE;	//462 | 50
 
 			/* Bytes left in inode, bytes left in sector, lesser of the two. */
@@ -375,10 +372,9 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 			offset += chunk_size;
 			bytes_written += chunk_size;
 		}
-	// #endif
 
 	free (bounce);
-
+	// printf("=========bytes_written : %d\n",bytes_written);
 	return bytes_written;
 }
 
