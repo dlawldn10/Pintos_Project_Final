@@ -17,4 +17,5 @@ test_main (void)
   seq_test ("testme",
             buf, sizeof buf, 0,
             return_block_size, NULL);
+
 }

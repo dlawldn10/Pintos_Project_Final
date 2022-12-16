@@ -7,6 +7,7 @@
 #include "filesys/inode.h"
 #include "filesys/directory.h"
 #include "devices/disk.h"
+#include "include/filesys/fat.h"
 
 /* The disk that contains the file system. */
 struct disk *filesys_disk;
@@ -64,8 +65,13 @@ bool
 filesys_create (const char *name, off_t initial_size) {
 	disk_sector_t inode_sector = 0;
 	struct dir *dir = dir_open_root ();
+	/* 추후 삭제 예정 */
+	// print_fat();
+	inode_sector = fat_create_chain(0);
+	// fat_print_chain(sector_to_cluster(inode_sector));
 	bool success = (dir != NULL
 			&& free_map_allocate (1, &inode_sector)
+			// && inode_sector
 			&& inode_create (inode_sector, initial_size)
 			&& dir_add (dir, name, inode_sector));
 	if (!success && inode_sector != 0)
