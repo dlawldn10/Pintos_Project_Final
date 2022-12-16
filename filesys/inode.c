@@ -53,7 +53,7 @@ byte_to_sector (const struct inode *inode, off_t pos) {
 
 	if (pos < inode->data.length){
 		#ifdef EFILESYS
-			return get_sector(inode->data.start,pos);
+			return get_sector(inode->data.start, pos);
 		#else
 			return inode->data.start + pos / DISK_SECTOR_SIZE;
 		#endif
@@ -214,9 +214,11 @@ inode_close (struct inode *inode) {
 
 		/* Deallocate blocks if removed. */
 		if (inode->removed) {
-			free_map_release (inode->sector, 1);
-			free_map_release (inode->data.start,
-					bytes_to_sectors (inode->data.length)); 
+			// free_map_release (inode->sector, 1);
+			// free_map_release (inode->data.start,
+			// 		bytes_to_sectors (inode->data.length)); 
+			fat_remove_chain(sector_to_cluster(inode->sector), 0);
+			fat_remove_chain(sector_to_cluster(inode->data.start), 0);
 		}
 
 		free (inode); 
@@ -280,12 +282,12 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) {
 	return bytes_read;
 }
 
-/* Writes SIZE bytes from BUFFER into INODE, starting at OFFSET.
- * Returns the number of bytes actually written, which may be
- * less than SIZE if end of file is reached or an error occurs.
- * (Normally a write at end of file would extend the inode, but
- * growth is not yet implemented.) */
-/* 파일의 현재 위치인 inode에서 SIZE 바이트를 BUFFER로 씁니다.*/
+// /* Writes SIZE bytes from BUFFER into INODE, starting at OFFSET.
+//  * Returns the number of bytes actually written, which may be
+//  * less than SIZE if end of file is reached or an error occurs.
+//  * (Normally a write at end of file would extend the inode, but
+//  * growth is not yet implemented.) */
+// /* 파일의 현재 위치인 inode에서 SIZE 바이트를 BUFFER로 씁니다.*/
 off_t
 inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 		off_t offset) {
@@ -297,31 +299,31 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 
 	if (inode->deny_write_cnt)
 		return 0;
-	#ifdef EFILESYS
-		disk_sector_t sect = byte_to_sector(inode, offset + size);
+	// #ifdef EFILESYS
+	// 	disk_sector_t sect = byte_to_sector(inode, offset + size);
 
-		if (sect == -1) {
-			disk_sector_t sectors = DIV_ROUND_UP(offset + size - inode->data.length, 512);
-			cluster_t clst = sector_to_cluster(byte_to_sector(inode, inode_length(inode) - 1));
-			for (int i = 0; i < sectors; i++) {
-				clst = fat_create_chain(clst);
-				if(clst == 0) {
-					break;
-				}
-				disk_write(filesys_disk, cluster_to_sector(clst), zero);
-				// disk_write(filesys_disk, , zero);
-			}
-		}
-		disk_sector_t write_sect = byte_to_sector(inode,offset);
-		cluster_t write_clst = sector_to_cluster(write_sect);
-		while(write_clst != EOChain){
-			disk_write(filesys_disk, cluster_to_sector(write_clst), buffer + bytes_written);
-			write_clst = fat_get(write_clst);
-			bytes_written += DISK_SECTOR_SIZE;
-		}
+	// 	if (sect == -1) {
+	// 		disk_sector_t sectors = DIV_ROUND_UP(offset + size - inode->data.length, 512);
+	// 		cluster_t clst = sector_to_cluster(byte_to_sector(inode, inode_length(inode) - 1));
+	// 		for (int i = 0; i < sectors; i++) {
+	// 			clst = fat_create_chain(clst);
+	// 			if(clst == 0) {
+	// 				break;
+	// 			}
+	// 			disk_write(filesys_disk, cluster_to_sector(clst), zero);
+	// 			// disk_write(filesys_disk, , zero);
+	// 		}
+	// 	}
+	// 	disk_sector_t write_sect = byte_to_sector(inode,offset);
+	// 	cluster_t write_clst = sector_to_cluster(write_sect);
+	// 	while(write_clst != EOChain){
+	// 		disk_write(filesys_disk, cluster_to_sector(write_clst), buffer + bytes_written);
+	// 		write_clst = fat_get(write_clst);
+	// 		bytes_written += DISK_SECTOR_SIZE;
+	// 	}
 
 
-	#else
+	// #else
 		while (size > 0) {
 			/* Sector to write, starting byte offset within sector. */
 			// offest = 512+462 = 974  | 50
@@ -365,8 +367,8 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 			offset += chunk_size;
 			bytes_written += chunk_size;
 		}
+	// #endif
 
-	#endif
 	free (bounce);
 
 	return bytes_written;

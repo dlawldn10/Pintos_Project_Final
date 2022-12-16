@@ -51,8 +51,6 @@ fat_init (void) {
 	// Extract FAT info
 	if (fat_fs->bs.magic != FAT_MAGIC)
 		fat_boot_create ();
-	printf("=============total_sectors: %d\n",fat_fs->bs.total_sectors);
-	printf("=============fat_sectors: %d\n",fat_fs->bs.fat_sectors);
 	fat_fs_init ();
 }
 
@@ -161,11 +159,11 @@ fat_fs_init (void) {
 	/* TODO: Your code goes here. */
 	/*fat_length: 파일 시스템에 얼마나 클러스터가 많은 지를 저장*/
 	/*20003 (20160, 20096)*/
-	// fat_fs->fat_length = fat_fs->bs.total_sectors-fat_fs->bs.fat_sectors;
-	fat_fs->fat_length = fat_fs->bs.total_sectors*DISK_SECTOR_SIZE/sizeof(cluster_t);
-	/*data_start: 파일 저장 시작할 수 있는 섹터 위치 저장 => DATA Sector 시작 지점*/
-	fat_fs->data_start = fat_fs->bs.fat_start+fat_fs->bs.fat_sectors;
-	// fat_fs->last_clst = 0; //???
+
+	fat_fs->fat_length = fat_fs->bs.fat_sectors * DISK_SECTOR_SIZE / sizeof(cluster_t);
+
+	fat_fs->data_start = fat_fs->bs.fat_start + fat_fs->bs.fat_sectors;
+
 	lock_init(&fat_fs->write_lock);
 }
 
@@ -180,8 +178,8 @@ cluster_t
 fat_create_chain (cluster_t clst) {
 	/* TODO: Your code goes here. */
 	cluster_t i;
-	for(i = 0; i <= fat_fs->fat_length; i++) {
-		if (fat_get(fat_fs->bs.fat_start + i) == 0) {
+	for(i = fat_fs->bs.fat_start; i <= fat_fs->fat_length; i++) {
+		if (fat_get(i) == 0) {
 			if(clst == 0) {
 				fat_put(i, EOChain);
 			}
@@ -235,48 +233,23 @@ fat_get (cluster_t clst) {
 disk_sector_t
 cluster_to_sector (cluster_t clst) {
 	/* TODO: Your code goes here. */
-	return clst+fat_fs->bs.fat_sectors;
+	return clst + fat_fs->bs.fat_sectors;
 }
 cluster_t
 sector_to_cluster (disk_sector_t sect) {
 	/* TODO: Your code goes here. */
-	return sect-fat_fs->bs.fat_sectors;
+	return sect - fat_fs->bs.fat_sectors;
 }
 
 disk_sector_t
 get_sector(disk_sector_t start, off_t pos){
 	cluster_t start_clst = sector_to_cluster(start);
 	
-	int i=0;
-	for (i=0; i<pos/DISK_SECTOR_SIZE;i++){
-		start_clst=fat_get(start_clst);
+	for (unsigned i = 0; i < pos / DISK_SECTOR_SIZE; i++){
+		start_clst = fat_get(start_clst);
 		if (start_clst == EOChain || start_clst == 0) {
 			return -1;
 		}
 	}
 	return cluster_to_sector(start_clst);
 }
-
-
-//추가함수
-// void fat_print_chain(cluster_t temp_clst) {
-
-// 	long long chain_size = 0;
-
-// 	printf("chain-|");
-// 	while(fat_get(temp_clst) != EOChain){
-// 		printf("-%d", temp_clst);
-// 		temp_clst = fat_fs->fat[temp_clst];
-// 		chain_size += 512;
-// 	}
-// 	printf("|-%d- size : %zu\n", fat_get(temp_clst), chain_size);
-// }
-
-// void print_fat(){
-// 	printf("\n===================print FAT====================================================================================\n");
-// 	for(int i = 0; i < fat_fs->bs.fat_sectors; i++){
-// 		printf(" [%4d|%10d] ", i, fat_fs->fat[i]);
-// 		if(i%5 == 0) printf("\n");
-// 	}
-// 	printf("\n================================================================================================================\n");
-// }

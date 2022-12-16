@@ -38,7 +38,5 @@ disk_sector_t cluster_to_sector (cluster_t clst);
 /* project 4*/
 cluster_t sector_to_cluster (disk_sector_t sect);
 disk_sector_t get_sector(disk_sector_t start, off_t pos);
-//###추가함수
-void print_fat();
-void fat_print_chain(cluster_t temp_clst);
+
 #endif /* filesys/fat.h */
