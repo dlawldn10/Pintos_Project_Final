@@ -300,12 +300,6 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 	uint8_t *bounce = NULL;
 	uint8_t zero[512];
 	memset(zero, 0, DISK_SECTOR_SIZE);
-	// printf("**************inode : %d\n",inode);
-	// printf("**************buffer_ : %d\n",buffer_);
-	// printf("*************size : %d\n",size);
-	// printf("*************offset : %d\n",offset);
-	// printf("=====inode_write_at 함수 inode : %d\n",inode);
-	// printf("=====inode->deny_write_cnt : %d\n",inode->deny_write_cnt);
 	if (inode->deny_write_cnt){
 		return 0;
 	}
