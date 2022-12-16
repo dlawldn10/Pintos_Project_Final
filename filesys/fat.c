@@ -51,8 +51,8 @@ fat_init (void) {
 	// Extract FAT info
 	if (fat_fs->bs.magic != FAT_MAGIC)
 		fat_boot_create ();
-	printf("=============total_sectors: %d\n",fat_fs->bs.total_sectors);
-	printf("=============fat_sectors: %d\n",fat_fs->bs.fat_sectors);
+	// printf("=============total_sectors: %d\n",fat_fs->bs.total_sectors);
+	// printf("=============fat_sectors: %d\n",fat_fs->bs.fat_sectors);
 	fat_fs_init ();
 }
 
@@ -162,10 +162,9 @@ fat_fs_init (void) {
 	/*fat_length: 파일 시스템에 얼마나 클러스터가 많은 지를 저장*/
 	/*20003 (20160, 20096)*/
 	// fat_fs->fat_length = fat_fs->bs.total_sectors-fat_fs->bs.fat_sectors;
-	fat_fs->fat_length = fat_fs->bs.total_sectors*DISK_SECTOR_SIZE/sizeof(cluster_t);
+	fat_fs->fat_length = fat_fs->bs.fat_sectors*(DISK_SECTOR_SIZE/sizeof(cluster_t));
 	/*data_start: 파일 저장 시작할 수 있는 섹터 위치 저장 => DATA Sector 시작 지점*/
 	fat_fs->data_start = fat_fs->bs.fat_start+fat_fs->bs.fat_sectors;
-	// fat_fs->last_clst = 0; //???
 	lock_init(&fat_fs->write_lock);
 }
 
