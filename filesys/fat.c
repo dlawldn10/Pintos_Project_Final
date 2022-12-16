@@ -20,7 +20,7 @@ struct fat_boot {
 struct fat_fs {
 	struct fat_boot bs;			//부팅 시 FAT 정보를 담는 구조체
 	unsigned int *fat;			//FAT array
-	unsigned int fat_length;	//20003 파일 시스템에 있는 클러스터 수
+	unsigned int fat_length;	//20096 파일 시스템에 있는 클러스터 수
 	disk_sector_t data_start;	//파일을 저장하기 위한 시작섹터번호
 	cluster_t last_clst;		//마지막 클러스터
 	struct lock write_lock;		
@@ -165,7 +165,7 @@ fat_fs_init (void) {
 	fat_fs->fat_length = fat_fs->bs.fat_sectors*(DISK_SECTOR_SIZE/sizeof(cluster_t));
 	/*data_start: 파일 저장 시작할 수 있는 섹터 위치 저장 => DATA Sector 시작 지점*/
 	fat_fs->data_start = fat_fs->bs.fat_start+fat_fs->bs.fat_sectors;
-	lock_init(&fat_fs->write_lock);
+	// lock_init(&fat_fs->write_lock);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -179,8 +179,9 @@ cluster_t
 fat_create_chain (cluster_t clst) {
 	/* TODO: Your code goes here. */
 	cluster_t i;
-	for(i = 0; i <= fat_fs->fat_length; i++) {
-		if (fat_get(fat_fs->bs.fat_start + i) == 0) {
+	//fat_fs->bs.fat_start
+	for(i = fat_fs->bs.fat_start; i <= fat_fs->fat_length; i++) {
+		if (fat_get(i) == 0) {
 			if(clst == 0) {
 				fat_put(i, EOChain);
 			}
@@ -235,19 +236,24 @@ disk_sector_t
 cluster_to_sector (cluster_t clst) {
 	/* TODO: Your code goes here. */
 	return clst+fat_fs->bs.fat_sectors;
+	// return clst+fat_fs->data_start;
 }
 cluster_t
 sector_to_cluster (disk_sector_t sect) {
 	/* TODO: Your code goes here. */
 	return sect-fat_fs->bs.fat_sectors;
+	// return sect-fat_fs->data_start;
 }
 
 disk_sector_t
 get_sector(disk_sector_t start, off_t pos){
 	cluster_t start_clst = sector_to_cluster(start);
+	// printf("get_sector========disk_sector_t : %d\n",start);
+	// cluster_t start_clst = start;
 	
 	int i=0;
 	for (i=0; i<pos/DISK_SECTOR_SIZE;i++){
+		// printf("get_sector========start_clst : %d\n",start_clst);
 		start_clst=fat_get(start_clst);
 		if (start_clst == EOChain || start_clst == 0) {
 			return -1;
@@ -257,25 +263,11 @@ get_sector(disk_sector_t start, off_t pos){
 }
 
 
-//추가함수
-// void fat_print_chain(cluster_t temp_clst) {
-
-// 	long long chain_size = 0;
-
-// 	printf("chain-|");
-// 	while(fat_get(temp_clst) != EOChain){
-// 		printf("-%d", temp_clst);
-// 		temp_clst = fat_fs->fat[temp_clst];
-// 		chain_size += 512;
-// 	}
-// 	printf("|-%d- size : %zu\n", fat_get(temp_clst), chain_size);
-// }
-
-// void print_fat(){
-// 	printf("\n===================print FAT====================================================================================\n");
-// 	for(int i = 0; i < fat_fs->bs.fat_sectors; i++){
-// 		printf(" [%4d|%10d] ", i, fat_fs->fat[i]);
-// 		if(i%5 == 0) printf("\n");
-// 	}
-// 	printf("\n================================================================================================================\n");
-// }
+void print_fat(){
+	printf("\n===================print FAT====================================================================================\n");
+	for(int i = 0; i < 200; i++){
+		printf(" [%4d|%10d] ", i, fat_fs->fat[i]);
+		if(i%5 == 4) printf("\n");
+	}
+	printf("\n================================================================================================================\n");
+}

@@ -6,6 +6,9 @@
 #include "filesys/inode.h"
 #include "threads/malloc.h"
 
+/*project 4*/
+#include "filesys/fat.h"
+
 /* A directory. */
 /* 디렉토리 구조체 */
 struct dir {
@@ -50,7 +53,9 @@ dir_open (struct inode *inode) {
 /* 루트 디렉토리를 열고 그를 위한 디렉토리를 반환합니다. */
 struct dir *
 dir_open_root (void) {
-	return dir_open (inode_open (ROOT_DIR_SECTOR));
+	/*project 4*/
+	disk_sector_t root = cluster_to_sector(ROOT_DIR_SECTOR);
+	return dir_open (inode_open (root));
 }
 
 /* Opens and returns a new directory for the same inode as DIR.
@@ -119,7 +124,8 @@ dir_lookup (const struct dir *dir, const char *name,
 	ASSERT (name != NULL);
 
 	if (lookup (dir, name, &e, NULL))
-		*inode =  (e.inode_sector);
+		*inode =  inode_open(e.inode_sector);
+		// *inode =  (e.inode_sector);
 	else
 		*inode = NULL;
 
@@ -165,7 +171,10 @@ dir_add (struct dir *dir, const char *name, disk_sector_t inode_sector) {
 	e.in_use = true;
 	strlcpy (e.name, name, sizeof e.name);
 	e.inode_sector = inode_sector;
+	// printf("*******inode_write_at 전 success : %d\n",success);
+	// printf("*******inode_write_at 전 dir->inode : %d\n",dir->inode);
 	success = inode_write_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
+	// printf("*******inode_write_at 후 success : %d\n",success);
 
 done:
 	return success;
