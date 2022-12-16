@@ -54,8 +54,7 @@ byte_to_sector (const struct inode *inode, off_t pos) {
 	// printf("==========byte_to_sector 진입 inode->data.length : %d \n",inode->data.length);
 	if (pos < inode->data.length){
 		#ifdef EFILESYS
-			// printf("==========byte_to_sector 진입 #ifdef EFILESYS\n");
-			return get_sector(inode->data.start,pos);
+			return get_sector(inode->data.start, pos);
 		#else
 			// printf("==========byte_to_sector 진입 #else\n");
 			return inode->data.start + pos / DISK_SECTOR_SIZE;
@@ -218,9 +217,11 @@ inode_close (struct inode *inode) {
 
 		/* Deallocate blocks if removed. */
 		if (inode->removed) {
-			free_map_release (inode->sector, 1);
-			free_map_release (inode->data.start,
-					bytes_to_sectors (inode->data.length)); 
+			// free_map_release (inode->sector, 1);
+			// free_map_release (inode->data.start,
+			// 		bytes_to_sectors (inode->data.length)); 
+			fat_remove_chain(sector_to_cluster(inode->sector), 0);
+			fat_remove_chain(sector_to_cluster(inode->data.start), 0);
 		}
 
 		free (inode); 
@@ -285,12 +286,12 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) {
 	return bytes_read;
 }
 
-/* Writes SIZE bytes from BUFFER into INODE, starting at OFFSET.
- * Returns the number of bytes actually written, which may be
- * less than SIZE if end of file is reached or an error occurs.
- * (Normally a write at end of file would extend the inode, but
- * growth is not yet implemented.) */
-/* 파일의 현재 위치인 inode에서 SIZE 바이트를 BUFFER로 씁니다.*/
+// /* Writes SIZE bytes from BUFFER into INODE, starting at OFFSET.
+//  * Returns the number of bytes actually written, which may be
+//  * less than SIZE if end of file is reached or an error occurs.
+//  * (Normally a write at end of file would extend the inode, but
+//  * growth is not yet implemented.) */
+// /* 파일의 현재 위치인 inode에서 SIZE 바이트를 BUFFER로 씁니다.*/
 off_t
 inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 		off_t offset) {
@@ -380,8 +381,8 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 			offset += chunk_size;
 			bytes_written += chunk_size;
 		}
-
 	// #endif
+
 	free (bounce);
 
 	return bytes_written;

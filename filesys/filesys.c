@@ -65,22 +65,17 @@ bool
 filesys_create (const char *name, off_t initial_size) {
 	disk_sector_t inode_sector = 0;
 	struct dir *dir = dir_open_root ();
-	cluster_t new_clst = fat_create_chain(0);
-	inode_sector = cluster_to_sector(new_clst);
-
-	// printf("===========*dir : %d\n",dir);
-	// printf("===========new_clst : %d\n",new_clst);
-	// printf("\n===========inode_sector1 : %d\n",inode_sector);
-	// printf("===========inode_create : %d\n",inode_create (inode_sector, initial_size));
-	// printf("===========dir_add : %d\n",dir_add (dir, name, inode_sector));
+	/* 추후 삭제 예정 */
+	cluster_t clst = fat_create_chain(0);
+	inode_sector = cluster_to_sector(clst);
 	bool success = (dir != NULL
+			//&& free_map_allocate (1, &inode_sector)
 			&& inode_sector
 			&& inode_create (inode_sector, initial_size)
 			&& dir_add (dir, name, inode_sector));
-	if (!success && inode_sector != 0){
-		free_map_release (inode_sector, 1);
-		// fat_remove_chain(new_clst, 0);
-	}
+	if (!success && inode_sector != 0)
+		// free_map_release (inode_sector, 1);
+		fat_remove_chain(sector_to_cluster(inode_sector), 0);
 	dir_close (dir);
 	return success;
 	//------project4-start------------------------
@@ -151,12 +146,13 @@ do_format (void) {
 
 #ifdef EFILESYS
 	/* Create FAT and save it to the disk. */
-	fat_create ();
-	/* project 4  */
+	fat_create();
+
+	/* Root Directory 생성 */
 	disk_sector_t root = cluster_to_sector(ROOT_DIR_CLUSTER);
 	if (!dir_create(root, 16))
-		PANIC ("root directory creation failed");
-	fat_close ();
+		PANIC("root directory creation failed");
+	fat_close();
 #else
 	free_map_create ();
 	if (!dir_create (ROOT_DIR_SECTOR, 16))
