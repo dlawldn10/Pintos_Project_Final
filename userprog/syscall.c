@@ -293,6 +293,7 @@ int open(const char *file)
 	check_address(file);
 	lock_acquire(&lock);
 	struct file *fileobj = filesys_open(file);
+	lock_release(&lock);
 
 	if (fileobj == NULL)
 	{
@@ -306,7 +307,7 @@ int open(const char *file)
 	{
 		file_close(fileobj);
 	}
-	lock_release(&lock);
+	// lock_release(&lock);
 	return fd;
 }
 
