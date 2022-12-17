@@ -21,7 +21,8 @@ struct inode_disk {
 	disk_sector_t start;                /* First data sector. */
 	off_t length;                       /* File size in bytes. */
 	unsigned magic;                     /* Magic number. */
-	uint32_t unused[125];               /* Not used. */
+	bool is_dir;						/* directory = true or file = false */
+	uint32_t unused[124];               /* Not used. */
 };
 
 /* Returns the number of sectors to allocate for an inode SIZE
@@ -40,6 +41,7 @@ struct inode {
 	bool removed;                       /* True if deleted, false otherwise. */
 	int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
 	struct inode_disk data;             /* Inode content. */
+	
 };
 
 /* Returns the disk sector that contains byte offset POS within
@@ -84,7 +86,7 @@ inode_init (void) {
  * 파일 시스템 디스크의 섹터 SECTOR에 새로운 inode를 write 합니다. 
  * 성공하면 true, 실패하면 false를 리턴합니다. */
 bool
-inode_create (disk_sector_t sector, off_t length) {
+inode_create (disk_sector_t sector, off_t length, bool is_dir) {
 	struct inode_disk *disk_inode = NULL;
 	bool success = false;
 
@@ -102,6 +104,7 @@ inode_create (disk_sector_t sector, off_t length) {
 		size_t sectors = bytes_to_sectors (length);
 		disk_inode->length = length;
 		disk_inode->magic = INODE_MAGIC;
+		disk_inode->is_dir = is_dir;
 		#ifdef EFILESYS
 			/* 파일의 첫번째 클러스터 번호 받기 */
 			cluster_t start = fat_create_chain(0);
@@ -286,12 +289,12 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) {
 	return bytes_read;
 }
 
-// /* Writes SIZE bytes from BUFFER into INODE, starting at OFFSET.
-//  * Returns the number of bytes actually written, which may be
-//  * less than SIZE if end of file is reached or an error occurs.
-//  * (Normally a write at end of file would extend the inode, but
-//  * growth is not yet implemented.) */
-// /* 파일의 현재 위치인 inode에서 SIZE 바이트를 BUFFER로 씁니다.*/
+/* Writes SIZE bytes from BUFFER into INODE, starting at OFFSET.
+ * Returns the number of bytes actually written, which may be
+ * less than SIZE if end of file is reached or an error occurs.
+ * (Normally a write at end of file would extend the inode, but
+ * growth is not yet implemented.) */
+/* 파일의 현재 위치인 inode에서 SIZE 바이트를 BUFFER로 씁니다.*/
 off_t
 inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 		off_t offset) {
@@ -300,7 +303,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 	uint8_t *bounce = NULL;
 	uint8_t zero[512];
 	memset(zero, 0, DISK_SECTOR_SIZE);
-	if (inode->deny_write_cnt){
+	if (inode->deny_write_cnt)
 		return 0;
 
 	#ifdef EFILESYS
@@ -396,4 +399,20 @@ inode_allow_write (struct inode *inode) {
 off_t
 inode_length (const struct inode *inode) {
 	return inode->data.length;
+}
+
+bool inode_is_dir(struct inode *inode)
+{
+    if (inode->removed)
+    {
+        return false;
+    }
+    bool res;
+    struct inode_disk *disk_inode = (struct inode_disk *)malloc(DISK_SECTOR_SIZE);
+	disk_read(filesys_disk, inode->sector, disk_inode);
+	res = disk_inode->is_dir;
+    // buffer_cache_read(inode->sector, disk_inode, 0, DISK_SECTOR_SIZE, 0);
+    // res = disk_inode->is_dir;
+    free(disk_inode);
+    return res;
 }

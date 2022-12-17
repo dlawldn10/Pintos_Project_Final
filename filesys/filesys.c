@@ -8,6 +8,11 @@
 #include "filesys/directory.h"
 #include "devices/disk.h"
 #include "include/filesys/fat.h"
+#include "include/threads/thread.h"
+
+/* Project 4 */
+#define PATH_MAX_LEN 256
+#define READDIR_MAX_LEN 14
 
 /* The disk that contains the file system. */
 struct disk *filesys_disk;
@@ -65,13 +70,17 @@ bool
 filesys_create (const char *name, off_t initial_size) {
 	disk_sector_t inode_sector = 0;
 	struct dir *dir = dir_open_root ();
+	thread_current()->cur_dir = dir;
+	// char *parse_name = (char *)malloc(sizeof(char) * (PATH_MAX_LEN + 1));
+    // struct dir *dir = parse_path(name, parse_name);
+
 	/* 추후 삭제 예정 */
 	cluster_t clst = fat_create_chain(0);
 	inode_sector = cluster_to_sector(clst);
 	bool success = (dir != NULL
 			//&& free_map_allocate (1, &inode_sector)
 			&& inode_sector
-			&& inode_create (inode_sector, initial_size)
+			&& inode_create (inode_sector, initial_size, false)
 			&& dir_add (dir, name, inode_sector));
 	if (!success && inode_sector != 0)
 		// free_map_release (inode_sector, 1);
@@ -148,4 +157,124 @@ do_format (void) {
 #endif
 
 	printf ("done.\n");
+}
+
+/* Project 4 */
+bool filesys_change_dir(char *path)
+{
+    char *path_copy = (char *)malloc(sizeof(char) * (PATH_MAX_LEN + 1));
+    strlcpy(path_copy, path, PATH_MAX_LEN);
+    strlcat(path_copy, "/0", PATH_MAX_LEN);
+
+    char *name = (char *)malloc(sizeof(char) * (PATH_MAX_LEN + 1));
+	// parse_path 추가 필요
+    struct dir *dir = parse_path(path_copy, name);
+
+    if (dir == NULL)
+    {
+        free(path_copy);
+        free(name);
+        return false;
+    }
+
+    free(path_copy);
+    free(name);
+    dir_close(thread_current()->cur_dir);
+    thread_current()->cur_dir = dir;
+    return true;
+}
+
+bool filesys_create_dir(char *name)
+{
+    disk_sector_t inode_sector = 0;
+    char *parse_name = (char *)malloc(sizeof(char) * (PATH_MAX_LEN + 1));
+    struct dir *dir = parse_path(name, parse_name);
+
+    bool success = (dir != NULL && dir_create(inode_sector, 16) && dir_add(dir, parse_name, inode_sector));
+
+    if (success)
+    {
+        add_dot(inode_sector, inode_get_inumber(dir_get_inode(dir)));
+        free(parse_name);
+        dir_close(dir);
+        return true;
+    }
+    else
+    {
+        if (inode_sector)
+        {
+            free_map_release(inode_sector, 1);
+        }
+        free(parse_name);
+        dir_close(dir);
+        return false;
+    }
+
+    return false;
+}
+
+
+struct dir *parse_path(char *name, char *file_name)
+{
+    struct dir *dir = NULL;
+    if (!name || !file_name || strlen(name) == 0)
+        return NULL;
+
+    char *path = (char *)malloc(sizeof(char) * (PATH_MAX_LEN + 1));
+    strlcpy(path, name, PATH_MAX_LEN);
+
+    if (path[0] == '/')
+    {
+        dir = dir_open_root();
+    }
+    else
+    {
+        dir = dir_reopen(thread_current()->cur_dir);
+    }
+
+    char *token, *next_token, *save_ptr;
+    token = strtok_r(path, "/", &save_ptr);
+    next_token = strtok_r(NULL, "/", &save_ptr);
+
+    if (dir == NULL)
+    {
+        return NULL;
+    }
+
+    if (!inode_is_dir(dir_get_inode(dir)))
+    {
+        return NULL;
+    }
+
+    for (; token != NULL && next_token != NULL; token = next_token, next_token = strtok_r(NULL, "/", &save_ptr))
+    {
+        struct inode *inode = NULL;
+        if (!dir_lookup(dir, token, &inode) || !inode_is_dir(inode))
+        {
+            dir_close(dir);
+            return NULL;
+        }
+        dir_close(dir);
+        dir = dir_open(inode);
+    }
+
+    if (token == NULL)
+    {
+        strlcpy(file_name, ".", PATH_MAX_LEN);
+    }
+    else
+    {
+        strlcpy(file_name, token, PATH_MAX_LEN);
+    }
+
+    free(path);
+    return dir;
+}
+
+static void add_dot(disk_sector_t cur, disk_sector_t parent)
+{
+    struct dir *dir = dir_open(inode_open(cur));
+    dir_add(dir, ".", cur);
+    dir_add(dir, "..", parent);
+    dir_close(dir);
 }

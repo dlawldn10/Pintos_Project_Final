@@ -43,6 +43,12 @@ void *mmap(void *addr, size_t length, int writable, int fd, off_t offset);
 void munmap(void *addr);
 struct page * check_address2(void *addr);
 void check_valid_buffer(void* buffer, unsigned size, void* rsp, bool to_write);
+bool chdir (const char *dir);
+bool mkdir (const char *dir);
+bool readdir (int fd, char *name);
+bool isdir (int fd);
+int inumber (int fd);
+int symlink (const char *target, const char *linkpath);
 
 /* System call.
  *
@@ -223,10 +229,6 @@ int dup2(int oldfd, int newfd)
 /* Project2-2 User Memory Access */
 void check_address(void *addr)
 {
-	// struct thread* curr = thread_current();
-	// if(!is_user_vaddr(addr) || addr == NULL || pml4_get_page(curr->pml4,addr) == NULL){
-	// 	exit(-1);
-	// }
 	struct thread *curr = thread_current();
 	if (!is_user_vaddr(addr) || addr == NULL || spt_find_page(&curr->spt, addr) == NULL)
 	{
@@ -514,3 +516,21 @@ unsigned tell(int fd)
 	}
 	return file_tell(file);
 }
+
+/* Project 4 */
+/* 프로세스의 현재 작업 디렉터리를 상대 경로 또는 절대 경로 dir로 변경 */
+bool chdir (const char *dir){
+	char *path = dir;
+    return filesys_change_dir(path);
+}
+
+bool mkdir (const char *dir){
+	char *path = dir;
+    return filesys_create_dir(path);
+}
+// bool readdir (int fd, char *name){
+
+// }
+// bool isdir (int fd);
+// int inumber (int fd);
+// int symlink (const char *target, const char *linkpath);
