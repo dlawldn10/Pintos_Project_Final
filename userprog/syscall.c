@@ -18,6 +18,8 @@
 #include "include/vm/vm.h"
 #include "include/vm/file.h"
 
+#include "filesys/inode.h"
+
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
 void check_address(void *addr);
@@ -531,6 +533,9 @@ bool mkdir (const char *dir){
 // bool readdir (int fd, char *name){
 
 // }
-// bool isdir (int fd);
+bool isdir (int fd){
+	struct file *f = find_file(fd);
+	return f->inode->data.is_dir;
+}
 // int inumber (int fd);
 // int symlink (const char *target, const char *linkpath);

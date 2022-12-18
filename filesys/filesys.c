@@ -36,6 +36,7 @@ filesys_init (bool format) {
 		do_format ();
 
 	fat_open ();
+	thread_current()->cur_dir = dir_open_root();
 #else
 	/* Original FS */
 	free_map_init ();

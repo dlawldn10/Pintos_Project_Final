@@ -12,6 +12,7 @@
 #include "threads/vaddr.h"
 #include "intrinsic.h"
 #include "threads/fixed_point.h"
+// #include "include/filesys/directory.h"
 
 #ifdef USERPROG
 #include "userprog/process.h"
@@ -139,6 +140,7 @@ thread_init (void) {
 	init_thread (initial_thread, "main", PRI_DEFAULT);
 	initial_thread->status = THREAD_RUNNING;
 	initial_thread->tid = allocate_tid ();
+	/* Project 4 */
 	initial_thread->cur_dir = NULL;
 }
 
@@ -218,8 +220,10 @@ thread_create (const char *name, int priority,
 	/* Initialize thread. */
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
-	if(thread_current()->cur_dir != NULL){
-		dir_open(thread_current()->running->inode);
+	struct thread *curr = thread_current();
+	if(curr->cur_dir != NULL){
+		struct thread *child = list_entry(&curr->child_elem, struct thread, child_elem);
+		child->cur_dir = dir_reopen(curr->cur_dir);
 	}
 
 	/* Call the kernel_thread if it scheduled.

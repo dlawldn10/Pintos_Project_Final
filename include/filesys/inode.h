@@ -4,6 +4,30 @@
 #include <stdbool.h>
 #include "filesys/off_t.h"
 #include "devices/disk.h"
+#include "include/lib/kernel/list.h"
+
+/* On-disk inode.
+ * Must be exactly DISK_SECTOR_SIZE bytes long. */
+/* strcut inode_disk는 총 512byte
+   4 * 3 + (4*125) = 512 byte*/
+struct inode_disk {
+	disk_sector_t start;                /* First data sector. */
+	off_t length;                       /* File size in bytes. */
+	unsigned magic;                     /* Magic number. */
+	bool is_dir;						/* directory = true or file = false */
+	uint32_t unused[124];               /* Not used. */
+};
+
+/* In-memory inode. */
+struct inode {
+	struct list_elem elem;              /* Element in inode list. */
+	disk_sector_t sector;               /* Sector number of disk location. */
+	int open_cnt;                       /* Number of openers. */
+	bool removed;                       /* True if deleted, false otherwise. */
+	int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
+	struct inode_disk data;             /* Inode content. */
+	
+};
 
 struct bitmap;
 
