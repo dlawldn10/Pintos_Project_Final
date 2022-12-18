@@ -220,10 +220,9 @@ thread_create (const char *name, int priority,
 	/* Initialize thread. */
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
-	struct thread *curr = thread_current();
-	if(curr->cur_dir != NULL){
-		struct thread *child = list_entry(&curr->child_elem, struct thread, child_elem);
-		child->cur_dir = dir_reopen(curr->cur_dir);
+	if(t->cur_dir != NULL){
+		struct thread *child = list_entry(&t->child_elem, struct thread, child_elem);
+		child->cur_dir = dir_reopen(t->cur_dir);
 	}
 
 	/* Call the kernel_thread if it scheduled.
