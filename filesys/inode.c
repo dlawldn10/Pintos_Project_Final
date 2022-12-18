@@ -17,12 +17,13 @@
  * Must be exactly DISK_SECTOR_SIZE bytes long. */
 /* strcut inode_disk는 총 512byte
    4 * 3 + (4*125) = 512 byte*/
-struct inode_disk {
-	disk_sector_t start;                /* First data sector. */
-	off_t length;                       /* File size in bytes. */
-	unsigned magic;                     /* Magic number. */
-	uint32_t unused[125];               /* Not used. */
-};
+// struct inode_disk {
+// 	disk_sector_t start;                /* First data sector. */
+// 	off_t length;                       /* File size in bytes. */
+// 	unsigned magic;                     /* Magic number. */
+// 	bool is_dir; 					/*파일, 디렉터리 구분*/
+// 	uint32_t unused[124];               /* Not used. */
+// };
 
 /* Returns the number of sectors to allocate for an inode SIZE
  * bytes long. */
@@ -32,15 +33,15 @@ bytes_to_sectors (off_t size) {
 	return DIV_ROUND_UP (size, DISK_SECTOR_SIZE);
 }
 
-/* In-memory inode. */
-struct inode {
-	struct list_elem elem;              /* Element in inode list. */
-	disk_sector_t sector;               /* Sector number of disk location. */
-	int open_cnt;                       /* Number of openers. */
-	bool removed;                       /* True if deleted, false otherwise. */
-	int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
-	struct inode_disk data;             /* Inode content. */
-};
+// /* In-memory inode. */
+// struct inode {
+// 	struct list_elem elem;              /* Element in inode list. */
+// 	disk_sector_t sector;               /* Sector number of disk location. */
+// 	int open_cnt;                       /* Number of openers. */
+// 	bool removed;                       /* True if deleted, false otherwise. */
+// 	int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
+// 	struct inode_disk data;             /* Inode content. */
+// };
 
 /* Returns the disk sector that contains byte offset POS within
  * INODE.
@@ -81,7 +82,7 @@ inode_init (void) {
  * 파일 시스템 디스크의 섹터 SECTOR에 새로운 inode를 write 합니다. 
  * 성공하면 true, 실패하면 false를 리턴합니다. */
 bool
-inode_create (disk_sector_t sector, off_t length) {
+inode_create (disk_sector_t sector, off_t length, bool is_dir) {
 	struct inode_disk *disk_inode = NULL;
 	bool success = false;
 
@@ -99,6 +100,7 @@ inode_create (disk_sector_t sector, off_t length) {
 		size_t sectors = bytes_to_sectors (length);
 		disk_inode->length = length;
 		disk_inode->magic = INODE_MAGIC;
+		disk_inode->is_dir = is_dir;
 		#ifdef EFILESYS
 			/* 파일의 첫번째 클러스터 번호 받기 */
 			cluster_t start = fat_create_chain(0);
@@ -387,4 +389,17 @@ inode_allow_write (struct inode *inode) {
 off_t
 inode_length (const struct inode *inode) {
 	return inode->data.length;
+}
+
+/*project 4*/
+bool inode_is_dir (const struct inode *inode) {
+	bool result;
+	
+
+	struct inode_disk *disk_inode = NULL;
+	disk_inode = calloc (1, sizeof *disk_inode);
+	disk_read(filesys_disk ,inode->sector, disk_inode);
+	result = inode->data.is_dir;
+	free(disk_inode);
+	return result;
 }

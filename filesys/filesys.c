@@ -8,6 +8,7 @@
 #include "filesys/directory.h"
 #include "devices/disk.h"
 #include "include/filesys/fat.h"
+#include "include/threads/thread.h"
 
 /* The disk that contains the file system. */
 struct disk *filesys_disk;
@@ -31,6 +32,7 @@ filesys_init (bool format) {
 		do_format ();
 
 	fat_open ();
+	thread_current()->cur_dir = dir_open_root();
 #else
 	/* Original FS */
 	free_map_init ();
@@ -71,7 +73,7 @@ filesys_create (const char *name, off_t initial_size) {
 	bool success = (dir != NULL
 			//&& free_map_allocate (1, &inode_sector)
 			&& inode_sector
-			&& inode_create (inode_sector, initial_size)
+			&& inode_create (inode_sector, initial_size, 0)
 			&& dir_add (dir, name, inode_sector));
 	if (!success && inode_sector != 0)
 		// free_map_release (inode_sector, 1);
