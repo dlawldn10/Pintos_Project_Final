@@ -4,11 +4,30 @@
 #include <stdbool.h>
 #include "filesys/off_t.h"
 #include "devices/disk.h"
+#include "include/lib/kernel/list.h"
 
 struct bitmap;
 
+struct inode_disk {
+	disk_sector_t start;                /* First data sector. */
+	off_t length;                       /* File size in bytes. */
+	unsigned magic;                     /* Magic number. */
+	bool is_dir; 					/*파일, 디렉터리 구분*/
+	uint32_t unused[124];               /* Not used. */
+};
+
+
+struct inode {
+	struct list_elem elem;              /* Element in inode list. */
+	disk_sector_t sector;               /* Sector number of disk location. */
+	int open_cnt;                       /* Number of openers. */
+	bool removed;                       /* True if deleted, false otherwise. */
+	int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
+	struct inode_disk data;             /* Inode content. */
+};
+
 void inode_init (void);
-bool inode_create (disk_sector_t, off_t);
+bool inode_create (disk_sector_t, off_t, bool);
 struct inode *inode_open (disk_sector_t);
 struct inode *inode_reopen (struct inode *);
 disk_sector_t inode_get_inumber (const struct inode *);
@@ -19,5 +38,8 @@ off_t inode_write_at (struct inode *, const void *, off_t size, off_t offset);
 void inode_deny_write (struct inode *);
 void inode_allow_write (struct inode *);
 off_t inode_length (const struct inode *);
+
+/*project 4*/
+bool inode_is_dir (const struct inode *inode);
 
 #endif /* filesys/inode.h */

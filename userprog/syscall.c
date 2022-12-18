@@ -18,6 +18,9 @@
 #include "include/vm/vm.h"
 #include "include/vm/file.h"
 
+/*projcet 4*/
+#include "include/filesys/inode.h"
+
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
 void check_address(void *addr);
@@ -43,6 +46,9 @@ void *mmap(void *addr, size_t length, int writable, int fd, off_t offset);
 void munmap(void *addr);
 struct page * check_address2(void *addr);
 void check_valid_buffer(void* buffer, unsigned size, void* rsp, bool to_write);
+
+/*project 4*/
+bool sys_isdir(int fd);
 
 /* System call.
  *
@@ -136,10 +142,21 @@ void syscall_handler(struct intr_frame *f UNUSED)
 	case SYS_MUNMAP:
 		munmap(f->R.rdi);
 		break;
+	case SYS_ISDIR:
+		f->R.rax = sys_isdir(f->R.rdi);
 	default:
 		thread_exit();
 		break;
 	}
+}
+
+/*project 4*/
+bool sys_isdir(int fd) {
+	struct file *file = find_file(fd);
+	if (file == NULL) {
+		return false;
+	}
+	return file->inode->data.is_dir == 1;
 }
 
 void check_valid_buffer(void* buffer, unsigned size, void* rsp, bool to_write) {

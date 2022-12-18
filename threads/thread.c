@@ -12,6 +12,8 @@
 #include "threads/vaddr.h"
 #include "intrinsic.h"
 #include "threads/fixed_point.h"
+/*project 4*/
+#include "include/filesys/directory.h"
 
 #ifdef USERPROG
 #include "userprog/process.h"
@@ -139,6 +141,9 @@ thread_init (void) {
 	init_thread (initial_thread, "main", PRI_DEFAULT);
 	initial_thread->status = THREAD_RUNNING;
 	initial_thread->tid = allocate_tid ();
+
+	/*project 4*/
+	initial_thread->cur_dir = NULL;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -217,6 +222,12 @@ thread_create (const char *name, int priority,
 	/* Initialize thread. */
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
+
+	/*project 4*/
+	if(thread_current()->cur_dir != NULL) {
+		struct thread *child_thread = list_entry(&thread_current()->child_elem, struct thread, child_elem);
+		child_thread->cur_dir = dir_reopen(thread_current()->cur_dir);
+	}
 
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
