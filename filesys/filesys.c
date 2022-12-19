@@ -12,6 +12,7 @@
 
 /* The disk that contains the file system. */
 struct disk *filesys_disk;
+#define PATH_MAX_LEN 256
 
 static void do_format (void);
 
@@ -66,19 +67,29 @@ filesys_done (void) {
 bool
 filesys_create (const char *name, off_t initial_size) {
 	disk_sector_t inode_sector = 0;
-	struct dir *dir = dir_open_root ();
+    char *cp_name = (char *)malloc(sizeof(strlen(name) + 1));
+    strlcpy(cp_name, name, strlen(name) + 1);
+
+    char *file_name = (char *)malloc(PATH_MAX_LEN + 1);
+    struct dir *dir = parse_path(cp_name, file_name);
+
+	// struct dir *dir = dir_open_root ();
 	/* 추후 삭제 예정 */
 	cluster_t clst = fat_create_chain(0);
 	inode_sector = cluster_to_sector(clst);
+
 	bool success = (dir != NULL
-			//&& free_map_allocate (1, &inode_sector)
-			&& inode_sector
+            // && inode_sector
 			&& inode_create (inode_sector, initial_size, 0)
-			&& dir_add (dir, name, inode_sector));
+			&& dir_add (dir, cp_name, inode_sector)
+            );
 	if (!success && inode_sector != 0)
 		// free_map_release (inode_sector, 1);
 		fat_remove_chain(sector_to_cluster(inode_sector), 0);
 	dir_close (dir);
+    free(cp_name);
+    free(file_name);
+
 	return success;
 }
 
@@ -92,14 +103,27 @@ filesys_create (const char *name, off_t initial_size) {
  * NAME 이라는 파일이 존재하지 않거나, 내부 메모리 할당이 실패한 경우 실패합니다. */
 struct file *
 filesys_open (const char *name) {
-	struct dir *dir = dir_open_root ();
-	struct inode *inode = NULL;
+    // // #ifdef EFILESYS
+        char *cp_name = (char *)malloc(sizeof(char) * (PATH_MAX_LEN + 1));
+        struct dir *dir = parse_path(name, cp_name);
+        struct inode *inode = NULL;
 
-	if (dir != NULL)
-		dir_lookup (dir, name, &inode);
-	dir_close (dir);
+        if (dir != NULL)
+        {
+            dir_lookup(dir, cp_name, &inode);
+        }
+        dir_close(dir);
+        free(cp_name);
+        return file_open(inode);
+    // #endif
+	// struct dir *dir = dir_open_root ();
+	// struct inode *inode = NULL;
 
-	return file_open (inode);
+	// if (dir != NULL)
+	// 	dir_lookup (dir, name, &inode);
+	// dir_close (dir);
+
+	// return file_open (inode);
 }
 
 /* Deletes the file named NAME.
@@ -108,11 +132,44 @@ filesys_open (const char *name) {
  * or if an internal memory allocation fails. */
 bool
 filesys_remove (const char *name) {
-	struct dir *dir = dir_open_root ();
-	bool success = dir != NULL && dir_remove (dir, name);
-	dir_close (dir);
+    // #ifdef EFILESYS
+        char *cp_name = (char *)malloc(strlen(name) + 1);
+        strlcpy(cp_name, name, strlen(name) + 1);
 
-	return success;
+        char *file_name = (char *)malloc(strlen(name) + 1);
+        struct dir *dir = parse_path(name, file_name);
+
+        struct inode *inode = NULL;
+        bool success = false;
+
+        if(dir != NULL) {
+            dir_lookup(dir, file_name, &inode);
+        }
+
+        if (inode_is_dir(inode)) { // inode가 디렉터리일 경우 디렉터리내 파일 존재 여부 검사
+            struct dir *cur_dir = dir_open(dir_get_inode(dir));
+            char *temp = (char *)malloc(strlen(name) + 1);
+            if (cur_dir) {
+                if (!dir_readdir(cur_dir, temp)){ // 디렉터리내 파일이 존재 하지 않을 경우, 디렉터리에서 file_name의 엔트리 삭제
+                    success = dir != NULL && dir_remove(dir, file_name);
+                }
+            }
+            dir_close(cur_dir);
+        }
+        else {
+            success = dir != NULL && dir_remove(dir, file_name);
+        }
+        dir_close(dir);
+        free(cp_name);
+        free(file_name);
+        return success;
+
+	// #endif
+	// struct dir *dir = dir_open_root ();
+	// bool success = dir != NULL && dir_remove (dir, name);
+	// dir_close (dir);
+
+	// return success;
 }
 
 /* Formats the file system. */
@@ -128,6 +185,11 @@ do_format (void) {
 	disk_sector_t root = cluster_to_sector(ROOT_DIR_CLUSTER);
 	if (!dir_create(root, 16))
 		PANIC("root directory creation failed");
+
+    struct dir *root_dir = dir_open_root();
+    dir_add(root_dir, ".", ROOT_DIR_SECTOR);
+    dir_add(root_dir, "..", ROOT_DIR_SECTOR);
+    dir_close(root_dir);
 	fat_close();
 #else
 	free_map_create ();
@@ -137,4 +199,112 @@ do_format (void) {
 #endif
 
 	printf ("done.\n");
+}
+
+struct dir* parse_path(char *path_name, char *file_name) {
+    struct dir *dir;
+    if(path_name == NULL || file_name == NULL) {
+        return NULL;
+    }
+    if(strlen(path_name) == 0) {
+        return NULL;
+    }
+
+    if (path_name[0] == '/') {
+        dir = dir_open_root();
+    }
+    else {
+		printf("===parse path 함수1===\n");
+        dir = dir_reopen(thread_current()->cur_dir);
+		printf("===parse path 함수2===\n");
+    }
+
+
+    char *token, *next_token, *save_ptr;
+
+    token = strtok_r(path_name, "/", &save_ptr);
+    next_token = strtok_r(NULL, "/", &save_ptr);
+
+    if (dir == NULL) {
+        return NULL;
+    }
+    /*inode가 파일인 경우 NULL 반환*/
+    if(!inode_is_dir(dir_get_inode(dir))) {
+        return NULL;
+    }
+
+    while(token != NULL && next_token != NULL) {
+        struct inode *inode = NULL;
+        if(!dir_lookup(dir, token, &inode) || !inode_is_dir(inode)) {
+            dir_close(dir);
+            return NULL;
+        }
+        dir_close(dir);
+        dir = dir_open(inode);
+
+        token = next_token;
+        next_token = strtok_r(NULL, "/", &save_ptr);
+    }
+    if (token == NULL) {
+        strlcpy(file_name, ".", PATH_MAX_LEN);
+    }
+    else {
+        strlcpy(file_name, token, PATH_MAX_LEN);
+    }
+
+    return dir;
+}
+
+bool filesys_create_dir(const char *name) {
+    bool success = false;
+    char *cp_name = (char *)malloc(PATH_MAX_LEN + 1);
+    strlcpy(cp_name, name, PATH_MAX_LEN + 1);
+    char *file_name = (char *)malloc(PATH_MAX_LEN + 1);
+
+    struct dir *dir = parse_path(cp_name, file_name);
+    cluster_t clst = fat_create_chain(0);
+
+    struct inode *inode;
+    struct dir *sub_dir = NULL;
+
+    success = (
+        dir != NULL
+        && dir_create(clst, 16)
+        && dir_add(dir, file_name, clst)
+        && dir_lookup(dir, file_name, &inode)
+        && dir_add(sub_dir = dir_open(inode), ".", clst)
+        && dir_add(sub_dir, "..", inode_get_inumber(dir_get_inode(dir)))
+    );
+
+    if(!success && clst != 0) {
+        fat_remove_chain(clst, 0);
+    }
+    dir_close(sub_dir);
+    dir_close(dir);
+    free(cp_name);
+    free(file_name);
+    return success;
+}
+
+bool filesys_change_dir(char *path)
+{
+    char *path_copy = (char *)malloc(sizeof(char) * (PATH_MAX_LEN + 1));
+    strlcpy(path_copy, path, PATH_MAX_LEN);
+    strlcat(path_copy, "/0", PATH_MAX_LEN);
+
+    char *name = (char *)malloc(sizeof(char) * (PATH_MAX_LEN + 1));
+    struct dir *dir = parse_path(path_copy, name);
+
+    if (dir == NULL)
+    {
+        free(path_copy);
+        free(name);
+        return false;
+    }
+
+    free(path_copy);
+    free(name);
+    dir_close(thread_current()->cur_dir);
+    thread_current()->cur_dir = dir;
+    return true;
 }

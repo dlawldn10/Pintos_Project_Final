@@ -330,7 +330,9 @@ process_exit (void) {
 	process_cleanup ();//추후 실험 필요
 	sema_up(&curr->wait_sema); // 자식 process 종료할때까지 기다림
 	/*project 4*/
-	dir_close(curr->cur_dir);
+	#ifdef EFILESYS
+		dir_close(thread_current()->cur_dir);
+	#endif
 	sema_down(&curr->free_sema); // 자식 process가 exit status 반환할 때 까지 기다림
 }
 

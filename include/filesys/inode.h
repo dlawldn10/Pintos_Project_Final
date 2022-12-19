@@ -5,6 +5,16 @@
 #include "filesys/off_t.h"
 #include "devices/disk.h"
 #include "include/lib/kernel/list.h"
+#include <list.h>
+#include <debug.h>
+#include <round.h>
+#include <string.h>
+#include "filesys/filesys.h"
+#include "filesys/free-map.h"
+#include "threads/malloc.h"
+
+/* project 4 */
+#include "include/filesys/fat.h"
 
 struct bitmap;
 

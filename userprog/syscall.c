@@ -20,6 +20,7 @@
 
 /*projcet 4*/
 #include "include/filesys/inode.h"
+#include "include/filesys/directory.h"
 
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
@@ -49,6 +50,10 @@ void check_valid_buffer(void* buffer, unsigned size, void* rsp, bool to_write);
 
 /*project 4*/
 bool sys_isdir(int fd);
+int sys_chdir(uint32_t *esp);
+int sys_mkdir(uint32_t *esp);
+int sys_readdir(uint32_t *esp);
+int sys_inumber(uint32_t *esp);
 
 /* System call.
  *
@@ -144,6 +149,19 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		break;
 	case SYS_ISDIR:
 		f->R.rax = sys_isdir(f->R.rdi);
+		break;
+	case SYS_CHDIR:
+		f->R.rax = sys_chdir(f->R.rdi);
+		break;
+	case SYS_MKDIR:
+		f->R.rax = sys_mkdir(f->R.rdi);
+		break;
+	case SYS_READDIR:
+		f->R.rax = sys_readdir(f->R.rdi);
+		break;
+	case SYS_INUMBER:
+		f->R.rax = sys_inumber(f->R.rdi);
+		break;
 	default:
 		thread_exit();
 		break;
@@ -156,7 +174,56 @@ bool sys_isdir(int fd) {
 	if (file == NULL) {
 		return false;
 	}
-	return file->inode->data.is_dir == 1;
+	return inode_is_dir(file_get_inode(file));
+}
+
+int sys_chdir(uint32_t *esp)
+{
+    char *path = (char *)esp[1];
+    return filesys_change_dir(path);
+}
+
+int sys_mkdir(uint32_t *esp)
+{
+    char *dir = (char *)esp[1];
+
+    return filesys_create_dir(dir);
+}
+
+int sys_readdir(uint32_t *esp)
+{
+    int f = (int)esp[1];
+    char *name = (char *)esp[2];
+    int i = 0;
+    bool result = true;
+
+    struct file *file = thread_current()->fd_table[f];
+
+    struct inode *inode = file_get_inode(file);
+    if (inode == NULL)
+    {
+        return false;
+    }
+    if (!inode_is_dir(inode))
+    {
+        return false;
+    }
+
+    struct dir *dir = dir_open(inode);
+
+    dir->pos = file_tell(file);
+    result = dir_readdir(dir, name);
+    file_seek(file, dir->pos);
+
+    return result;
+}
+
+
+int sys_inumber(uint32_t *esp)
+{
+    int f = (int)esp[1];
+
+    return inode_get_inumber(file_get_inode(thread_current()->fd_table[f]));
 }
 
 void check_valid_buffer(void* buffer, unsigned size, void* rsp, bool to_write) {

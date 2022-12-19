@@ -224,11 +224,11 @@ thread_create (const char *name, int priority,
 	tid = t->tid = allocate_tid ();
 
 	/*project 4*/
-	if(thread_current()->cur_dir != NULL) {
-		struct thread *child_thread = list_entry(&thread_current()->child_elem, struct thread, child_elem);
-		child_thread->cur_dir = dir_reopen(thread_current()->cur_dir);
-	}
-
+	#ifdef EFILESYS
+		if(thread_current()->cur_dir != NULL) {
+			t->cur_dir = dir_reopen(thread_current()->cur_dir);
+		}
+	#endif
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
 	t->tf.rip = (uintptr_t) kernel_thread;

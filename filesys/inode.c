@@ -1,14 +1,14 @@
 #include "filesys/inode.h"
-#include <list.h>
-#include <debug.h>
-#include <round.h>
-#include <string.h>
-#include "filesys/filesys.h"
-#include "filesys/free-map.h"
-#include "threads/malloc.h"
+// #include <list.h>
+// #include <debug.h>
+// #include <round.h>
+// #include <string.h>
+// #include "filesys/filesys.h"
+// #include "filesys/free-map.h"
+// #include "threads/malloc.h"
 
-/* project 4 */
-#include "include/filesys/fat.h"
+// /* project 4 */
+// #include "include/filesys/fat.h"
 
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
@@ -145,6 +145,7 @@ inode_create (disk_sector_t sector, off_t length, bool is_dir) {
 	}
 	return success;
 }
+
 
 /* Reads an inode from SECTOR
  * and returns a `struct inode' that contains it.
