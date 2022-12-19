@@ -214,9 +214,7 @@ struct dir* parse_path(char *path_name, char *file_name) {
         dir = dir_open_root();
     }
     else {
-		printf("===parse path 함수1===\n");
         dir = dir_reopen(thread_current()->cur_dir);
-		printf("===parse path 함수2===\n");
     }
 
 
