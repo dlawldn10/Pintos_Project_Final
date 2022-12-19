@@ -67,7 +67,7 @@ filesys_done (void) {
 bool
 filesys_create (const char *name, off_t initial_size) {
 	disk_sector_t inode_sector = 0;
-    char *cp_name = (char *)malloc(sizeof(strlen(name) + 1));
+    char *cp_name = (char *)malloc(PATH_MAX_LEN + 1);
     strlcpy(cp_name, name, strlen(name) + 1);
 
     char *file_name = (char *)malloc(PATH_MAX_LEN + 1);
@@ -81,7 +81,7 @@ filesys_create (const char *name, off_t initial_size) {
 	bool success = (dir != NULL
             // && inode_sector
 			&& inode_create (inode_sector, initial_size, 0)
-			&& dir_add (dir, cp_name, inode_sector)
+			&& dir_add (dir, file_name, inode_sector)
             );
 	if (!success && inode_sector != 0)
 		// free_map_release (inode_sector, 1);
