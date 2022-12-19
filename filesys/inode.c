@@ -214,6 +214,7 @@ inode_close (struct inode *inode) {
 	if (--inode->open_cnt == 0) {
 		/* Remove from inode list and release lock. */
 		list_remove (&inode->elem);
+		disk_write(filesys_disk, inode->sector, &inode->data);
 
 		/* Deallocate blocks if removed. */
 		if (inode->removed) {

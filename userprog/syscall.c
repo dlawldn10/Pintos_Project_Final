@@ -188,7 +188,7 @@ bool sys_chdir(const char *path_name) {
 
     struct dir *chdir = NULL;
 
-    if (cp_name[0] == '/') {	// 절대 경로로 디렉토리 되어 있다면
+    if (cp_name[0] == "/") {	// 절대 경로로 디렉토리 되어 있다면
         chdir = dir_open_root();
     }
     else {						// 상대 경로로 디렉토리 되어 있다면
