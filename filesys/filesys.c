@@ -226,6 +226,12 @@ struct dir* parse_path(char *path_name, char *file_name) {
     if (dir == NULL) {
         return NULL;
     }
+
+    if(token == NULL) {
+        token = (char*)malloc(2);
+        strlcpy(token, ".", 2);
+    }
+
     /*inode가 파일인 경우 NULL 반환*/
     if(!inode_is_dir(dir_get_inode(dir))) {
         return NULL;
