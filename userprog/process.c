@@ -66,6 +66,7 @@ static void
 initd (void *f_name) {
 #ifdef VM
 	supplemental_page_table_init (&thread_current ()->spt);
+	lock_init(&vm_lock);
 #endif
 
 	process_init ();
@@ -86,7 +87,7 @@ tid_t process_fork(const char *name, struct intr_frame *if_) {
 	struct thread *cur = thread_current();
 	memcpy(&cur->parent_if, if_, sizeof(struct intr_frame));
 
-	tid_t tid = thread_create(name, PRI_DEFAULT, __do_fork, cur);
+	tid_t tid = thread_create(name, PRI_DEFAULT + 1, __do_fork, cur);
 	if (tid == TID_ERROR) {
 		return TID_ERROR;
 	}
@@ -327,8 +328,12 @@ process_exit (void) {
 	palloc_free_multiple(curr->fd_table,FDT_PAGES);
 	file_close(curr->running);
 	process_cleanup ();//추후 실험 필요
-	sema_up(&curr->wait_sema);
-	sema_down(&curr->free_sema);
+	sema_up(&curr->wait_sema); // 자식 process 종료할때까지 기다림
+	/*project 4*/
+	#ifdef EFILESYS
+		dir_close(thread_current()->cur_dir);
+	#endif
+	sema_down(&curr->free_sema); // 자식 process가 exit status 반환할 때 까지 기다림
 }
 
 /* Free the current process's resources. */
@@ -822,7 +827,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 		/* Project 3 */
 		void *aux = NULL;
-		struct container *fp = (struct file_page *)malloc(sizeof (struct container));
+		struct container *fp = (struct container *)malloc(sizeof (struct container));
 		/* 해당 파일의 필요한 정보들을 구조체 형태로 fp 에 저장 후, 이후 aux로 전달*/
 		fp->file=file;
 		fp->ofs=ofs;
@@ -876,4 +881,3 @@ setup_stack (struct intr_frame *if_) {
 	------------------------- <---- stack_bottom
 */
 // #endif /* VM */
-

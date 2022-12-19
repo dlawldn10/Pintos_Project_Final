@@ -208,6 +208,8 @@ disk_size (struct disk *d) {
    room for DISK_SECTOR_SIZE bytes.
    Internally synchronizes accesses to disks, so external
    per-disk locking is unneeded. */
+/* 디스크 D의 SEC_NO번 섹터로부터 BUFFER로 읽어들이는데, 이때 반드시 DISK_SECTOR_SIZE 만큼의 공간이 있어야합니다.
+ * 내부적으로 디스크 접근 시 동기화를 진행하므로, 외부 locking을 필요로하지 않습니다.*/
 void
 disk_read (struct disk *d, disk_sector_t sec_no, void *buffer) {
 	struct channel *c;
@@ -232,6 +234,9 @@ disk_read (struct disk *d, disk_sector_t sec_no, void *buffer) {
    acknowledged receiving the data.
    Internally synchronizes accesses to disks, so external
    per-disk locking is unneeded. */
+/* DISK_SECTOR_SIZE 바이트를 포함해야 하는 BUFFER에서 디스크 D에 섹터 SEC_NO를 씁니다. 
+   디스크가 데이터 수신을 확인하면 리턴합니다.
+   디스크에 대한 액세스를 내부적으로 동기화하므로 외부 locking이 필요하지 않습니다.*/
 void
 disk_write (struct disk *d, disk_sector_t sec_no, const void *buffer) {
 	struct channel *c;
@@ -241,6 +246,7 @@ disk_write (struct disk *d, disk_sector_t sec_no, const void *buffer) {
 
 	c = d->channel;
 	lock_acquire (&c->lock);
+	/* disk's sector selection registers 에 sec_no 기록*/
 	select_sector (d, sec_no);
 	issue_pio_command (c, CMD_WRITE_SECTOR_RETRY);
 	if (!wait_while_busy (d))

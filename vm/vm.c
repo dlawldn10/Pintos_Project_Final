@@ -136,6 +136,7 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 
 void spt_remove_page(struct supplemental_page_table *spt, struct page *page)
 {
+	// hash_delete(&spt->spt_hash, &page->hash_elem);
 	vm_dealloc_page(page);
 	// return true;
 }
@@ -152,9 +153,9 @@ vm_get_victim(void)
 	if(start == NULL) {
 		start = list_begin(&frame_table);
 	}
-
 	for (start = e; start != list_tail(&frame_table); start = list_next(start)) {
 		frame = list_entry(start, struct frame, frame_elem);
+		if(frame->page->operations->type==VM_FILE && pml4_is_dirty(cur->pml4, frame->page->va)) continue;
 		if(pml4_is_accessed(cur->pml4, frame->page->va)) {
 			pml4_set_accessed(cur->pml4, frame->page->va, false);
 		}
@@ -165,6 +166,7 @@ vm_get_victim(void)
 
 	for (start = list_begin(&frame_table); start != list_tail(&frame_table); start = list_next(start)) {
 		frame = list_entry(start, struct frame, frame_elem);
+		if(frame->page->operations->type==VM_FILE && pml4_is_dirty(cur->pml4, frame->page->va)) continue;
 		if(pml4_is_accessed(cur->pml4, frame->page->va)) {
 			pml4_set_accessed(cur->pml4, frame->page->va, false);
 		}
@@ -248,11 +250,12 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	그러나 f->rsp kernel stack을 가리키고 있을 수 있다면, user stack을 키우는 것이 목적이므로 
 	thread 구조체에 저장해두었던 rsp 사용.*/
 	void *rsp =  is_kernel_vaddr(f->rsp) ? thread_current()->rsp : f->rsp;
-
 	void *stack_bottom = thread_current()->stack_bottom;
-	if(USER_STACK - (1 << 20) <= addr && rsp - 8 <= addr && addr <= stack_bottom) {
-		vm_stack_growth(stack_bottom - PGSIZE);
-		return true;
+	if(not_present && write) {
+		if(USER_STACK - (1 << 20) <= addr && rsp - 8 <= addr && addr <= stack_bottom) {
+			vm_stack_growth(stack_bottom - PGSIZE);
+			return true;
+		}	
 	}
 
 	return vm_claim_page (addr);
@@ -350,6 +353,17 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+	struct hash_iterator i;
+
+    hash_first (&i, &spt->spt_hash);
+    while (hash_next (&i)) {
+        struct page *page = hash_entry (hash_cur (&i), struct page, hash_elem);
+
+        if (page->operations->type == VM_FILE) {
+            do_munmap(page->va);
+            // destroy(page);
+        }
+    }
 	hash_destroy(&spt->spt_hash, hash_destory_each);
 }
 
