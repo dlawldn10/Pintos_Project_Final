@@ -201,62 +201,69 @@ do_format (void) {
 	printf ("done.\n");
 }
 
-struct dir* parse_path(char *path_name, char *file_name) {
-    struct dir *dir;
-    if(path_name == NULL || file_name == NULL) {
-        return NULL;
-    }
-    if(strlen(path_name) == 0) {
-        return NULL;
-    }
+struct dir *parse_path(char *path_name, char *file_name)
+{
+	struct dir *dir;
+	struct inode *inode = NULL;
 
-    if (path_name[0] == '/') {
-        dir = dir_open_root();
-    }
-    else {
-        dir = dir_reopen(thread_current()->cur_dir);
-    }
+	if (path_name == NULL || file_name == NULL)
+		goto fail;
+	if (strlen(path_name) == 0)
+		goto fail;
+
+	// printf("parse_path : %s\n", path_name);
+
+	/* path_name의 절대/상대경로에 따른 디렉터리 정보 저장*/
+	if (path_name[0] == '/')
+	{
+		dir = dir_open_root();
+	}
+	else
+	{
+		dir = dir_reopen(thread_current()->cur_dir);
+	}
 
 
-    char *token, *next_token, *save_ptr;
+	char *token, *nextToken, *savePtr;
+	token = strtok_r(path_name, "/", &savePtr);
+	nextToken = strtok_r(NULL, "/", &savePtr);
 
-    token = strtok_r(path_name, "/", &save_ptr);
-    next_token = strtok_r(NULL, "/", &save_ptr);
+	/* "/"를 오픈하는 경우 */
+	if (token == NULL)
+	{
+		token = (char *)malloc(2);
+		strlcpy(token, ".", 2);
+	}
 
-    if (dir == NULL) {
-        return NULL;
-    }
+	while (token != NULL && nextToken != NULL)
+	{
+		/* dir에서 token이름의 파일을 검색하여 inode의 정보를 저장*/
+		if (!dir_lookup(dir, token, &inode))
+		{
+			dir_close(dir);
+			goto fail;
+		}
 
-    if(token == NULL) {
-        token = (char*)malloc(2);
-        strlcpy(token, ".", 2);
-    }
+		/* inode가 파일일 경우 NULL 반환 */
+		if (!inode_is_dir(inode))
+		{
+			dir_close(dir);
+			inode_close(inode);
+			goto fail;
+		}
 
-    /*inode가 파일인 경우 NULL 반환*/
-    if(!inode_is_dir(dir_get_inode(dir))) {
-        return NULL;
-    }
+		dir_close(dir);		   // dir의 디렉터리 정보를 메모리에서 해지
+		dir = dir_open(inode); // inode에 해당하는 디렉터리 정보를 dir에 저장
 
-    while(token != NULL && next_token != NULL) {
-        struct inode *inode = NULL;
-        if(!dir_lookup(dir, token, &inode) || !inode_is_dir(inode)) {
-            dir_close(dir);
-            return NULL;
-        }
-        dir_close(dir);
-        dir = dir_open(inode);
+		token = nextToken; // token에 검색할 다음 경로이름 저장
+		nextToken = strtok_r(NULL, "/", &savePtr);
+	}
+	strlcpy(file_name, token, strlen(token) + 1); // token의 파일 이름을 file_name에 저장 */
 
-        token = next_token;
-        next_token = strtok_r(NULL, "/", &save_ptr);
-    }
-    if (token == NULL) {
-        strlcpy(file_name, ".", PATH_MAX_LEN);
-    }
-    else {
-        strlcpy(file_name, token, PATH_MAX_LEN);
-    }
+	return dir; // dir 정보 반환
 
-    return dir;
+fail:
+	return NULL;
 }
 
 bool filesys_create_dir(const char *name) {
