@@ -22,4 +22,8 @@ bool filesys_create_dir(char *name);
 struct dir *parse_path(char *name, char *file_name);
 static void add_dot(disk_sector_t cur, disk_sector_t parent);
 
+/*project 4*/
+struct dir* parse_path(char *path_name, char *file_name);
+bool filesys_create_dir(const char *name);
+bool filesys_change_dir(char *path);
 #endif /* filesys/filesys.h */

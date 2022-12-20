@@ -13,6 +13,19 @@
 
 struct inode;
 
+/* 디렉토리 구조체 */
+struct dir {
+	struct inode *inode;                /* Backing store. */
+	int32_t pos;                          /* Current position. */
+};
+
+/* A single directory entry. */
+struct dir_entry {
+	disk_sector_t inode_sector;         /* Sector number of header. */
+	char name[NAME_MAX + 1];            /* Null terminated file name. */
+	bool in_use;                        /* In use or free? */
+};
+
 /* Opening and closing directories. */
 bool dir_create (disk_sector_t sector, size_t entry_cnt);
 struct dir *dir_open (struct inode *);
@@ -26,5 +39,8 @@ bool dir_lookup (const struct dir *, const char *name, struct inode **);
 bool dir_add (struct dir *, const char *name, disk_sector_t);
 bool dir_remove (struct dir *, const char *name);
 bool dir_readdir (struct dir *, char name[NAME_MAX + 1]);
+
+/*project 4*/
+void dir_seek(struct dir *dir, int32_t new_pos);
 
 #endif /* filesys/directory.h */

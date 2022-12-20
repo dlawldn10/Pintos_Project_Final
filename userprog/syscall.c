@@ -18,7 +18,10 @@
 #include "include/vm/vm.h"
 #include "include/vm/file.h"
 
-#include "filesys/inode.h"
+/*projcet 4*/
+#include "include/filesys/inode.h"
+#include "include/filesys/directory.h"
+
 
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
@@ -51,6 +54,13 @@ bool readdir (int fd, char *name);
 bool isdir (int fd);
 int inumber (int fd);
 int symlink (const char *target, const char *linkpath);
+
+/*project 4*/
+bool sys_isdir(int fd);
+bool sys_chdir(const char *path_name);
+bool sys_mkdir(const char *dir);
+bool sys_readdir(int fd, char *name);
+cluster_t sys_inumber(int fd);
 
 /* System call.
  *
@@ -144,10 +154,132 @@ void syscall_handler(struct intr_frame *f UNUSED)
 	case SYS_MUNMAP:
 		munmap(f->R.rdi);
 		break;
+	case SYS_ISDIR:
+		f->R.rax = sys_isdir(f->R.rdi);
+		break;
+	case SYS_CHDIR:
+		f->R.rax = sys_chdir(f->R.rdi);
+		break;
+	case SYS_MKDIR:
+		f->R.rax = sys_mkdir(f->R.rdi);
+		break;
+	case SYS_READDIR:
+		f->R.rax = sys_readdir(f->R.rdi, f->R.rsi);
+		break;
+	case SYS_INUMBER:
+		f->R.rax = sys_inumber(f->R.rdi);
+		break;
 	default:
 		thread_exit();
 		break;
 	}
+}
+
+/*project 4*/
+bool sys_isdir(int fd) {
+	struct file *file = find_file(fd);
+	if (file == NULL) {
+		return false;
+	}
+	return inode_is_dir(file_get_inode(file));
+}
+
+bool sys_chdir(const char *path_name) {
+    if (path_name == NULL) {
+        return false;
+	}
+
+    // name의 파일 경로 를 cp_name에 복사
+    char *cp_name = (char *)malloc(strlen(path_name) + 1);
+    strlcpy(cp_name, path_name, strlen(path_name) + 1);
+
+    struct dir *chdir = NULL;
+
+    if (cp_name[0] == "/") {	// 절대 경로로 디렉토리 되어 있다면
+        chdir = dir_open_root();
+    }
+    else {						// 상대 경로로 디렉토리 되어 있다면
+        chdir = dir_reopen(thread_current()->cur_dir);
+	}
+
+    // dir경로를 분석하여 디렉터리를 반환
+    char *token, *savePtr;
+    token = strtok_r(cp_name, "/", &savePtr);
+
+    struct inode *inode = NULL;
+    while (token != NULL) {
+        // dir에서 token이름의 파일을 검색하여 inode의 정보를 저장
+        if (!dir_lookup(chdir, token, &inode)) {
+            dir_close(chdir);
+            return false;
+        }
+
+        // inode가 파일일 경우 NULL 반환
+        if (!inode_is_dir(inode)) {
+            dir_close(chdir);
+            return false;
+        }
+
+        // dir의 디렉터리 정보를 메모리에서 해지
+        dir_close(chdir);
+        
+        // inode의 디렉터리 정보를 dir에저장
+        chdir = dir_open(inode);
+
+        // token에검색할경로이름저장
+        token = strtok_r(NULL, "/", &savePtr);
+    }
+    // 스레드의현재작업디렉터리를변경
+    dir_close(thread_current()->cur_dir);
+    thread_current()->cur_dir = chdir;
+    free(cp_name);
+    return true;
+}
+
+bool sys_mkdir(const char *dir) {
+    lock_acquire(&lock);
+    bool new_dir = filesys_create_dir(dir);
+    lock_release(&lock);
+    return new_dir;
+}
+bool sys_readdir(int fd, char *name) {
+    if (name == NULL) {
+        return false;
+	}
+
+    // fd리스트에서 fd에 대한 file정보 얻어옴
+	struct file *target = find_file(fd);
+    if (target == NULL) {
+        return false;
+	}
+
+    // fd의 file->inode가 디렉터리인지 검사
+    if (!inode_is_dir(file_get_inode(target))) {
+        return false;
+	}
+
+    // p_file을 dir자료구조로 포인팅
+    struct dir *p_file = target;
+    if (p_file->pos == 0) {
+        dir_seek(p_file, 2 * sizeof(struct dir_entry));		// ".", ".." 제외
+	}
+
+    // 디렉터리의 엔트리에서 ".", ".." 이름을 제외한 파일이름을 name에 저장
+    bool result = dir_readdir(p_file, name);
+
+    return result;
+}
+
+
+cluster_t sys_inumber(int fd)
+{
+    struct file *file = find_file(fd);
+
+	if (file == NULL) {
+		return false;
+	}
+
+    return inode_get_inumber(file_get_inode(file));
 }
 
 void check_valid_buffer(void* buffer, unsigned size, void* rsp, bool to_write) {

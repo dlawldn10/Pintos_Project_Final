@@ -135,7 +135,9 @@ struct thread {
 	int stdin_count;
 	int stdout_count;
 
-	/* Project 4 */
+
+	/*project 4*/
+
 	struct dir *cur_dir;
 
 #ifdef USERPROG

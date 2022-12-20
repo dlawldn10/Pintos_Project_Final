@@ -1,18 +1,17 @@
 #include "filesys/inode.h"
-#include <list.h>
-#include <debug.h>
-#include <round.h>
-#include <string.h>
-#include "filesys/filesys.h"
-#include "filesys/free-map.h"
-#include "threads/malloc.h"
+// #include <list.h>
+// #include <debug.h>
+// #include <round.h>
+// #include <string.h>
+// #include "filesys/filesys.h"
+// #include "filesys/free-map.h"
+// #include "threads/malloc.h"
 
-/* project 4 */
-#include "include/filesys/fat.h"
+// /* project 4 */
+// #include "include/filesys/fat.h"
 
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
-
 
 
 /* Returns the number of sectors to allocate for an inode SIZE
@@ -131,6 +130,7 @@ inode_create (disk_sector_t sector, off_t length, bool is_dir) {
 	return success;
 }
 
+
 /* Reads an inode from SECTOR
  * and returns a `struct inode' that contains it.
  * Returns a null pointer if memory allocation fails. */
@@ -198,6 +198,7 @@ inode_close (struct inode *inode) {
 	if (--inode->open_cnt == 0) {
 		/* Remove from inode list and release lock. */
 		list_remove (&inode->elem);
+		disk_write(filesys_disk, inode->sector, &inode->data);
 
 		/* Deallocate blocks if removed. */
 		if (inode->removed) {
@@ -382,18 +383,16 @@ inode_length (const struct inode *inode) {
 	return inode->data.length;
 }
 
-bool inode_is_dir(struct inode *inode)
-{
-    if (inode->removed)
-    {
-        return false;
-    }
-    bool res;
-    struct inode_disk *disk_inode = (struct inode_disk *)malloc(DISK_SECTOR_SIZE);
-	disk_read(filesys_disk, inode->sector, disk_inode);
-	res = disk_inode->is_dir;
-    // buffer_cache_read(inode->sector, disk_inode, 0, DISK_SECTOR_SIZE, 0);
-    // res = disk_inode->is_dir;
-    free(disk_inode);
-    return res;
+/*project 4*/
+bool inode_is_dir (const struct inode *inode) {
+	bool result;
+	
+
+	struct inode_disk *disk_inode = NULL;
+	disk_inode = calloc (1, sizeof *disk_inode);
+	disk_read(filesys_disk ,inode->sector, disk_inode);
+	result = inode->data.is_dir;
+	free(disk_inode);
+	return result;
 }
+

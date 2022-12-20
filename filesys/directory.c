@@ -10,24 +10,24 @@
 #include "filesys/fat.h"
 
 /* A directory. */
-/* 디렉토리 구조체 */
-struct dir {
-	struct inode *inode;                /* Backing store. */
-	off_t pos;                          /* Current position. */
-};
+// /* 디렉토리 구조체 */
+// struct dir {
+// 	struct inode *inode;                /* Backing store. */
+// 	off_t pos;                          /* Current position. */
+// };
 
-/* A single directory entry. */
-struct dir_entry {
-	disk_sector_t inode_sector;         /* Sector number of header. */
-	char name[NAME_MAX + 1];            /* Null terminated file name. */
-	bool in_use;                        /* In use or free? */
-};
+// /* A single directory entry. */
+// struct dir_entry {
+// 	disk_sector_t inode_sector;         /* Sector number of header. */
+// 	char name[NAME_MAX + 1];            /* Null terminated file name. */
+// 	bool in_use;                        /* In use or free? */
+// };
 
 /* Creates a directory with space for ENTRY_CNT entries in the
  * given SECTOR.  Returns true if successful, false on failure. */
 bool
 dir_create (disk_sector_t sector, size_t entry_cnt) {
-	return inode_create (sector, entry_cnt * sizeof (struct dir_entry), true);
+	return inode_create (sector, entry_cnt * sizeof (struct dir_entry), 1);
 }
 
 /* Opens and returns the directory for the given INODE, of which
@@ -36,7 +36,7 @@ dir_create (disk_sector_t sector, size_t entry_cnt) {
  * 실패 시 NULL을 반환한다. */
 struct dir *
 dir_open (struct inode *inode) {
-	struct dir *dir = calloc (1, sizeof *dir);
+	struct dir *dir = calloc (1, sizeof (struct dir));
 	if (inode != NULL && dir != NULL) {
 		// 디렉토리 초기화
 		dir->inode = inode;
@@ -145,7 +145,6 @@ dir_add (struct dir *dir, const char *name, disk_sector_t inode_sector) {
 
 	ASSERT (dir != NULL);
 	ASSERT (name != NULL);
-
 	/* Check NAME for validity. */
 	if (*name == '\0' || strlen (name) > NAME_MAX)
 		return false;
@@ -189,6 +188,11 @@ dir_remove (struct dir *dir, const char *name) {
 	ASSERT (dir != NULL);
 	ASSERT (name != NULL);
 
+	if (name[0] == '.') {
+        return false;
+    }
+
+
 	/* Find directory entry. */
 	if (!lookup (dir, name, &e, &ofs))
 		goto done;
@@ -229,4 +233,10 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1]) {
 		}
 	}
 	return false;
+}
+
+void dir_seek(struct dir *dir, off_t new_pos) {
+	ASSERT(dir != NULL);
+	ASSERT(new_pos >= 0);
+	dir->pos = new_pos;
 }

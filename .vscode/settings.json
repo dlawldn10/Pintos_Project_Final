@@ -18,6 +18,8 @@
         "process.h": "c",
         "inttypes.h": "c",
         "bitmap.h": "c",
-        "fat.h": "c"
+        "fat.h": "c",
+        "directory.h": "c",
+        "inode.h": "c"
     }
 }
