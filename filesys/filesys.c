@@ -7,6 +7,7 @@
 #include "filesys/inode.h"
 #include "filesys/directory.h"
 #include "devices/disk.h"
+#include "include/filesys/fat.h"
 
 /* The disk that contains the file system. */
 struct disk *filesys_disk;
@@ -57,19 +58,40 @@ filesys_done (void) {
  * Returns true if successful, false otherwise.
  * Fails if a file named NAME already exists,
  * or if internal memory allocation fails. */
+/* 주어진 INITIAL_SIZE으로 NAME 이라는 이름의 파일을 생성합니다.
+ * 성공시 true를 반환하며, 실패시 false를 반환합니다.
+ * NAME이라는 파일이 이미 존재할 경우 또는 내부 메모리 할당이 실패할 경우 실패합니다. */
 bool
 filesys_create (const char *name, off_t initial_size) {
 	disk_sector_t inode_sector = 0;
 	struct dir *dir = dir_open_root ();
+	/* 추후 삭제 예정 */
+	cluster_t clst = fat_create_chain(0);
+	inode_sector = cluster_to_sector(clst);
 	bool success = (dir != NULL
-			&& free_map_allocate (1, &inode_sector)
+			//&& free_map_allocate (1, &inode_sector)
+			&& inode_sector
 			&& inode_create (inode_sector, initial_size)
 			&& dir_add (dir, name, inode_sector));
 	if (!success && inode_sector != 0)
-		free_map_release (inode_sector, 1);
+		// free_map_release (inode_sector, 1);
+		fat_remove_chain(sector_to_cluster(inode_sector), 0);
 	dir_close (dir);
-
 	return success;
+
+	/*기존코드*/
+	// return success;
+	// 	disk_sector_t inode_sector = 0;
+	// struct dir *dir = dir_open_root ();
+	// bool success = (dir != NULL
+	// 		&& free_map_allocate (1, &inode_sector)
+	// 		&& inode_create (inode_sector, initial_size)
+	// 		&& dir_add (dir, name, inode_sector));
+	// if (!success && inode_sector != 0)
+	// 	free_map_release (inode_sector, 1);
+	// dir_close (dir);
+
+	// return success;
 }
 
 /* Opens the file with the given NAME.
@@ -88,7 +110,6 @@ filesys_open (const char *name) {
 	if (dir != NULL)
 		dir_lookup (dir, name, &inode);
 	dir_close (dir);
-
 	return file_open (inode);
 }
 
@@ -112,8 +133,13 @@ do_format (void) {
 
 #ifdef EFILESYS
 	/* Create FAT and save it to the disk. */
-	fat_create ();
-	fat_close ();
+	fat_create();
+
+	/* Root Directory 생성 */
+	disk_sector_t root = cluster_to_sector(ROOT_DIR_CLUSTER);
+	if (!dir_create(root, 16))
+		PANIC("root directory creation failed");
+	fat_close();
 #else
 	free_map_create ();
 	if (!dir_create (ROOT_DIR_SECTOR, 16))

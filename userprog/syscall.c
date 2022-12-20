@@ -307,6 +307,7 @@ int open(const char *file)
 	{
 		file_close(fileobj);
 	}
+
 	return fd;
 }
 
