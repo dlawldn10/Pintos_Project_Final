@@ -67,11 +67,12 @@ filesys_done (void) {
 bool
 filesys_create (const char *name, off_t initial_size) {
 	disk_sector_t inode_sector = 0;
-    char *cp_name = (char *)malloc(PATH_MAX_LEN + 1);
-    strlcpy(cp_name, name, strlen(name) + 1);
 
-    char *file_name = (char *)malloc(PATH_MAX_LEN + 1);
-    struct dir *dir = parse_path(cp_name, file_name);
+  char *cp_name = (char *)malloc(PATH_MAX_LEN + 1);
+  strlcpy(cp_name, name, strlen(name) + 1);
+
+  char *file_name = (char *)malloc(PATH_MAX_LEN + 1);
+  struct dir *dir = parse_path(cp_name, file_name);
 
 	// struct dir *dir = dir_open_root ();
 	/* 추후 삭제 예정 */
@@ -83,6 +84,7 @@ filesys_create (const char *name, off_t initial_size) {
 			&& inode_create (inode_sector, initial_size, 0)
 			&& dir_add (dir, file_name, inode_sector)
             );
+
 	if (!success && inode_sector != 0)
 		// free_map_release (inode_sector, 1);
 		fat_remove_chain(sector_to_cluster(inode_sector), 0);
@@ -91,6 +93,20 @@ filesys_create (const char *name, off_t initial_size) {
     free(file_name);
 
 	return success;
+
+	/*기존코드*/
+	// return success;
+	// 	disk_sector_t inode_sector = 0;
+	// struct dir *dir = dir_open_root ();
+	// bool success = (dir != NULL
+	// 		&& free_map_allocate (1, &inode_sector)
+	// 		&& inode_create (inode_sector, initial_size)
+	// 		&& dir_add (dir, name, inode_sector));
+	// if (!success && inode_sector != 0)
+	// 	free_map_release (inode_sector, 1);
+	// dir_close (dir);
+
+	// return success;
 }
 
 /* Opens the file with the given NAME.
@@ -126,6 +142,7 @@ filesys_open (const char *name) {
 	// dir_close (dir);
 
 	// return file_open (inode);
+
 }
 
 /* Deletes the file named NAME.
@@ -299,6 +316,7 @@ bool filesys_create_dir(const char *name) {
     return success;
 }
 
+
 bool filesys_change_dir(char *path)
 {
     char *path_copy = (char *)malloc(sizeof(char) * (PATH_MAX_LEN + 1));
@@ -306,6 +324,8 @@ bool filesys_change_dir(char *path)
     strlcat(path_copy, "/0", PATH_MAX_LEN);
 
     char *name = (char *)malloc(sizeof(char) * (PATH_MAX_LEN + 1));
+
+
     struct dir *dir = parse_path(path_copy, name);
 
     if (dir == NULL)
@@ -320,4 +340,100 @@ bool filesys_change_dir(char *path)
     dir_close(thread_current()->cur_dir);
     thread_current()->cur_dir = dir;
     return true;
+
+}
+
+bool filesys_create_dir(char *name)
+{
+    disk_sector_t inode_sector = 0;
+    char *parse_name = (char *)malloc(sizeof(char) * (PATH_MAX_LEN + 1));
+    struct dir *dir = parse_path(name, parse_name);
+
+    bool success = (dir != NULL && dir_create(inode_sector, 16) && dir_add(dir, parse_name, inode_sector));
+
+    if (success)
+    {
+        add_dot(inode_sector, inode_get_inumber(dir_get_inode(dir)));
+        free(parse_name);
+        dir_close(dir);
+        return true;
+    }
+    else
+    {
+        if (inode_sector)
+        {
+            free_map_release(inode_sector, 1);
+        }
+        free(parse_name);
+        dir_close(dir);
+        return false;
+    }
+
+    return false;
+}
+
+
+struct dir *parse_path(char *name, char *file_name)
+{
+    struct dir *dir = NULL;
+    if (!name || !file_name || strlen(name) == 0)
+        return NULL;
+
+    char *path = (char *)malloc(sizeof(char) * (PATH_MAX_LEN + 1));
+    strlcpy(path, name, PATH_MAX_LEN);
+
+    if (path[0] == '/')
+    {
+        dir = dir_open_root();
+    }
+    else
+    {
+        dir = dir_reopen(thread_current()->cur_dir);
+    }
+
+    char *token, *next_token, *save_ptr;
+    token = strtok_r(path, "/", &save_ptr);
+    next_token = strtok_r(NULL, "/", &save_ptr);
+
+    if (dir == NULL)
+    {
+        return NULL;
+    }
+
+    if (!inode_is_dir(dir_get_inode(dir)))
+    {
+        return NULL;
+    }
+
+    for (; token != NULL && next_token != NULL; token = next_token, next_token = strtok_r(NULL, "/", &save_ptr))
+    {
+        struct inode *inode = NULL;
+        if (!dir_lookup(dir, token, &inode) || !inode_is_dir(inode))
+        {
+            dir_close(dir);
+            return NULL;
+        }
+        dir_close(dir);
+        dir = dir_open(inode);
+    }
+
+    if (token == NULL)
+    {
+        strlcpy(file_name, ".", PATH_MAX_LEN);
+    }
+    else
+    {
+        strlcpy(file_name, token, PATH_MAX_LEN);
+    }
+
+    free(path);
+    return dir;
+}
+
+static void add_dot(disk_sector_t cur, disk_sector_t parent)
+{
+    struct dir *dir = dir_open(inode_open(cur));
+    dir_add(dir, ".", cur);
+    dir_add(dir, "..", parent);
+    dir_close(dir);
 }

@@ -1,6 +1,7 @@
 /* file-backed page에 대한 동작을 제공 */
 /* file.c: Implementation of memory backed file object (mmaped object). */
 #include "vm/vm.h"
+#include "userprog/syscall.h"
 
 /*Project 3 */
 #include "include/userprog/process.h"
@@ -94,9 +95,7 @@ do_mmap (void *addr, size_t length, int writable,
 	mmap이 lazy load 방식으로 구현되었기 때문에, mmap이 lazy하게 load되기 전에 
 	file이 close되었을 경우 file을 load하지 못하는 상황이 생김
 	이를 처리하기 위해 새로 연 파일을 넘겨주어야 함*/
-	lock_acquire(&vm_lock);
 	struct file *re_file = file_reopen(file);
-	lock_release(&vm_lock);
 	void *ori_addr = addr;
 
 	while (read_bytes > 0 || zero_bytes > 0) {
@@ -140,9 +139,7 @@ do_munmap (void *addr) {
         
         /* dirty(사용되었던) bit 체크 */ 
         if(pml4_is_dirty(thread_current()->pml4, page->va)) {
-			lock_acquire(&vm_lock);
             file_write_at(aux->file, addr, aux->page_read_byte, aux->ofs);
-			lock_release(&vm_lock);
             pml4_set_dirty (thread_current()->pml4, page->va, 0);
         }
 

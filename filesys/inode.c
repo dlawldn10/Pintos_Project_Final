@@ -13,35 +13,16 @@
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
 
-/* On-disk inode.
- * Must be exactly DISK_SECTOR_SIZE bytes long. */
-/* strcut inode_disk는 총 512byte
-   4 * 3 + (4*125) = 512 byte*/
-// struct inode_disk {
-// 	disk_sector_t start;                /* First data sector. */
-// 	off_t length;                       /* File size in bytes. */
-// 	unsigned magic;                     /* Magic number. */
-// 	bool is_dir; 					/*파일, 디렉터리 구분*/
-// 	uint32_t unused[124];               /* Not used. */
-// };
 
 /* Returns the number of sectors to allocate for an inode SIZE
  * bytes long. */
-/* SIZE 바이트 길이의 inode를 할당하기 위한 섹터의 번호를 리턴합니다. */
+/* SIZE 바이트 길이의 inode를 할당하기 위한 섹터의 수를 리턴합니다. */
 static inline size_t
 bytes_to_sectors (off_t size) {
 	return DIV_ROUND_UP (size, DISK_SECTOR_SIZE);
 }
 
-// /* In-memory inode. */
-// struct inode {
-// 	struct list_elem elem;              /* Element in inode list. */
-// 	disk_sector_t sector;               /* Sector number of disk location. */
-// 	int open_cnt;                       /* Number of openers. */
-// 	bool removed;                       /* True if deleted, false otherwise. */
-// 	int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
-// 	struct inode_disk data;             /* Inode content. */
-// };
+
 
 /* Returns the disk sector that contains byte offset POS within
  * INODE.
@@ -52,14 +33,17 @@ static disk_sector_t
 byte_to_sector (const struct inode *inode, off_t pos) {
 	ASSERT (inode != NULL);
 
+	// printf("==========byte_to_sector 진입 inode->data.length : %d \n",inode->data.length);
 	if (pos < inode->data.length){
 		#ifdef EFILESYS
 			return get_sector(inode->data.start, pos);
 		#else
+			// printf("==========byte_to_sector 진입 #else\n");
 			return inode->data.start + pos / DISK_SECTOR_SIZE;
 		#endif
 	}
 	else
+		// printf("==========byte_to_sector 진입 return -1\n");
 		return -1;
 }
 
@@ -104,7 +88,6 @@ inode_create (disk_sector_t sector, off_t length, bool is_dir) {
 		#ifdef EFILESYS
 			/* 파일의 첫번째 클러스터 번호 받기 */
 			cluster_t start = fat_create_chain(0);
-			
 			if (!start) {
 				free(disk_inode);
 				return false;
@@ -116,6 +99,7 @@ inode_create (disk_sector_t sector, off_t length, bool is_dir) {
 
 			if (sectors > 0) {
 				static char zeros[DISK_SECTOR_SIZE];
+
 				size_t i;
 				cluster_t clst = start;
 				disk_write (filesys_disk, cluster_to_sector(start), zeros);
@@ -248,6 +232,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) {
 
 	while (size > 0) {
 		/* Disk sector to read, starting byte offset within sector. */
+		// printf("!!!!!=========byte_to_sector 진입전 inode->data.length : %d \n",inode->data.length);
 		disk_sector_t sector_idx = byte_to_sector (inode, offset);
 		int sector_ofs = offset % DISK_SECTOR_SIZE;
 
@@ -286,12 +271,12 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) {
 	return bytes_read;
 }
 
-// /* Writes SIZE bytes from BUFFER into INODE, starting at OFFSET.
-//  * Returns the number of bytes actually written, which may be
-//  * less than SIZE if end of file is reached or an error occurs.
-//  * (Normally a write at end of file would extend the inode, but
-//  * growth is not yet implemented.) */
-// /* 파일의 현재 위치인 inode에서 SIZE 바이트를 BUFFER로 씁니다.*/
+/* Writes SIZE bytes from BUFFER into INODE, starting at OFFSET.
+ * Returns the number of bytes actually written, which may be
+ * less than SIZE if end of file is reached or an error occurs.
+ * (Normally a write at end of file would extend the inode, but
+ * growth is not yet implemented.) */
+/* 파일의 현재 위치인 inode에서 SIZE 바이트를 BUFFER로 씁니다.*/
 off_t
 inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 		off_t offset) {
@@ -300,12 +285,13 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 	uint8_t *bounce = NULL;
 	uint8_t zero[512];
 	memset(zero, 0, DISK_SECTOR_SIZE);
-
 	if (inode->deny_write_cnt)
 		return 0;
+
 	#ifdef EFILESYS
 		disk_sector_t sect = byte_to_sector(inode, offset + size);
 		disk_sector_t sectors;
+
 		if (sect == -1) {
 			sectors = DIV_ROUND_UP(offset + size - inode->data.length, 512);
 			cluster_t clst = sector_to_cluster(byte_to_sector(inode, inode_length(inode) - 1));
@@ -315,12 +301,14 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 					break;
 				}
 				disk_write(filesys_disk, cluster_to_sector(clst), zero);
+
 			}
 			inode->data.length = offset + size;
 		}
 
 	#endif
 		while (size > 0) {
+
 			/* Sector to write, starting byte offset within sector. */
 			// offest = 512+462 = 974  | 50
 			disk_sector_t sector_idx = byte_to_sector (inode, offset);
@@ -363,8 +351,10 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 			offset += chunk_size;
 			bytes_written += chunk_size;
 		}
+
 	free (bounce);
 	disk_write (filesys_disk, inode->sector, &inode->data);
+
 	return bytes_written;
 }
 
@@ -405,3 +395,4 @@ bool inode_is_dir (const struct inode *inode) {
 	free(disk_inode);
 	return result;
 }
+

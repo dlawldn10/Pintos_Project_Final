@@ -12,8 +12,10 @@
 #include "threads/vaddr.h"
 #include "intrinsic.h"
 #include "threads/fixed_point.h"
+
 /*project 4*/
 #include "include/filesys/directory.h"
+
 
 #ifdef USERPROG
 #include "userprog/process.h"
@@ -142,6 +144,7 @@ thread_init (void) {
 	initial_thread->status = THREAD_RUNNING;
 	initial_thread->tid = allocate_tid ();
 
+
 	/*project 4*/
 	initial_thread->cur_dir = NULL;
 }
@@ -222,6 +225,10 @@ thread_create (const char *name, int priority,
 	/* Initialize thread. */
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
+	if(t->cur_dir != NULL){
+		struct thread *child = list_entry(&t->child_elem, struct thread, child_elem);
+		child->cur_dir = dir_reopen(t->cur_dir);
+	}
 
 	/*project 4*/
 	#ifdef EFILESYS

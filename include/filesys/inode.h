@@ -5,6 +5,7 @@
 #include "filesys/off_t.h"
 #include "devices/disk.h"
 #include "include/lib/kernel/list.h"
+
 #include <list.h>
 #include <debug.h>
 #include <round.h>
@@ -15,6 +16,7 @@
 
 /* project 4 */
 #include "include/filesys/fat.h"
+
 
 struct bitmap;
 
@@ -49,7 +51,9 @@ void inode_deny_write (struct inode *);
 void inode_allow_write (struct inode *);
 off_t inode_length (const struct inode *);
 
+
 /*project 4*/
 bool inode_is_dir (const struct inode *inode);
+
 
 #endif /* filesys/inode.h */

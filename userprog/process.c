@@ -18,6 +18,7 @@
 #include "threads/mmu.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+#include "userprog/syscall.h"
 #ifdef VM
 #include "vm/vm.h"
 #include "include/vm/file.h"
@@ -66,7 +67,7 @@ static void
 initd (void *f_name) {
 #ifdef VM
 	supplemental_page_table_init (&thread_current ()->spt);
-	lock_init(&vm_lock);
+	// lock_init(&vm_lock);
 #endif
 
 	process_init ();
@@ -329,10 +330,12 @@ process_exit (void) {
 	file_close(curr->running);
 	process_cleanup ();//추후 실험 필요
 	sema_up(&curr->wait_sema); // 자식 process 종료할때까지 기다림
+
 	/*project 4*/
 	#ifdef EFILESYS
 		dir_close(thread_current()->cur_dir);
 	#endif
+
 	sema_down(&curr->free_sema); // 자식 process가 exit status 반환할 때 까지 기다림
 }
 
@@ -471,7 +474,9 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* Open executable file. */
 	/* 프로그램 파일 open*/
+	lock_acquire(&filesys_lock);
 	file = filesys_open (file_name);
+	lock_release(&filesys_lock);
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", file_name);
 		exit(-1);
@@ -482,7 +487,10 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* Read and verify executable header. */
 	/* ELF파일의 헤더정보를 읽어와 저장 */
-	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
+	lock_acquire(&filesys_lock);
+	off_t oft = file_read (file, &ehdr, sizeof ehdr);
+	lock_release(&filesys_lock);
+	if (oft != sizeof ehdr
 			|| memcmp (ehdr.e_ident, "\177ELF\2\1\1", 7)
 			|| ehdr.e_type != 2
 			|| ehdr.e_machine != 0x3E // amd64
@@ -492,7 +500,6 @@ load (const char *file_name, struct intr_frame *if_) {
 		printf ("load: %s: error loading executable\n", file_name);
 		goto done;
 	}
-
 	/* Read program headers. */
 	file_ofs = ehdr.e_phoff;
 	for (i = 0; i < ehdr.e_phnum; i++) {
@@ -502,8 +509,13 @@ load (const char *file_name, struct intr_frame *if_) {
 			goto done;
 		file_seek (file, file_ofs);
 
-		if (file_read (file, &phdr, sizeof phdr) != sizeof phdr)
+		lock_acquire(&filesys_lock);
+		oft = file_read (file, &phdr, sizeof phdr);
+		lock_release(&filesys_lock);
+
+		if (oft != sizeof phdr){
 			goto done;
+		}
 		file_ofs += sizeof phdr;
 		switch (phdr.p_type) {
 			case PT_NULL:
@@ -766,8 +778,8 @@ setup_stack (struct intr_frame *if_) {
 	return success;
 }
 
-#endif
 
+#endif
 /* From here, codes will be used after project 3.
  * If you want to implement the function for only project 2, implement it on the
  * upper block. */
@@ -782,9 +794,14 @@ lazy_load_segment (struct page *page, void *aux) {
 	struct container *fp = aux;
 	
 	file_seek(fp->file, fp->ofs);
-
+	
+	// if (!lock_held_by_current_thread(&filesys_lock)){
+	// 	lock_acquire(&filesys_lock);
+	// }
 	/* Load this page. */
-	if (file_read (fp->file, page->frame->kva, fp->page_read_byte) != (int) fp->page_read_byte) {
+	off_t t = file_read (fp->file, page->frame->kva, fp->page_read_byte);
+
+	if (t != (int) fp->page_read_byte) {
 		palloc_free_page (page->frame->kva);
 		return false;
 	}
@@ -834,8 +851,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		fp->page_read_byte = page_read_bytes;
 		fp->page_zero_byte = page_zero_bytes;
 		aux = fp;
-
-		// aux = file;
 
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
 					writable, lazy_load_segment, (struct container*)aux))

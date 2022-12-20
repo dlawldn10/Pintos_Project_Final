@@ -2,6 +2,8 @@
 #include <debug.h>
 #include "filesys/inode.h"
 #include "threads/malloc.h"
+#include "userprog/syscall.h"
+#include "threads/thread.h"
 
 
 /* Opens a file for the given INODE, of which it takes ownership,
@@ -12,6 +14,7 @@
 struct file *
 file_open (struct inode *inode) {
 	struct file *file = calloc (1, sizeof *file);
+	// printf("inode : %p , file : %p \n",inode,file);
 	if (inode != NULL && file != NULL) {
 		file->inode = inode;
 		file->pos = 0;
