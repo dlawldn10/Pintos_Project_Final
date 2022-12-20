@@ -57,11 +57,11 @@ void check_valid_buffer(void* buffer, unsigned size, void* rsp, bool to_write);
 #define MSR_LSTAR 0xc0000082		/* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 
-static struct lock lock;
+
 
 void syscall_init(void)
 {
-	lock_init(&lock);
+	lock_init(&filesys_lock);
 	write_msr(MSR_STAR, ((uint64_t)SEL_UCSEG - 0x10) << 48 |
 							((uint64_t)SEL_KCSEG) << 32);
 	write_msr(MSR_LSTAR, (uint64_t)syscall_entry);
@@ -105,11 +105,11 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		f->R.rax = filesize(f->R.rdi);
 		break;
 	case SYS_READ:
-		check_valid_buffer(f->R.rsi, f->R.rdx, f->rsp, 1);
+		check_valid_buffer(f->R.rsi, f->R.rdx, f->rsp, 0);
 		f->R.rax = read(f->R.rdi, f->R.rsi, f->R.rdx);
 		break;
 	case SYS_WRITE:
-		check_valid_buffer(f->R.rsi, f->R.rdx, f->rsp, 0);
+		check_valid_buffer(f->R.rsi, f->R.rdx, f->rsp, 1);
 		f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
 		break;
 	case SYS_FORK:
@@ -143,6 +143,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 }
 
 void check_valid_buffer(void* buffer, unsigned size, void* rsp, bool to_write) {
+	// printf("======check valid buffer\n");
     for (int i = 0; i < size; i++) {
         struct page* page = check_address2(buffer + i);    // 인자로 받은 buffer부터 buffer + size까지의 크기가 한 페이지의 크기를 넘을수도 있음
         if(page == NULL)
@@ -254,18 +255,17 @@ void exit(int status)
 bool create(const char *file, unsigned initial_size)
 {
 	check_address(file);
-	return filesys_create(file, initial_size);
+	lock_acquire(&filesys_lock);
+	bool t = filesys_create(file, initial_size);
+	lock_release(&filesys_lock);
+	return t;
 }
 
 /* Project2-3 System Call */
 bool remove(const char *file)
 {
 	check_address(file);
-	if (filesys_remove(file))
-	{
-		return true;
-	}
-	return false;
+	return filesys_remove(file);
 }
 
 /* Project2-3 System Call */
@@ -291,9 +291,9 @@ int exec(const char *cmd_line)
 int open(const char *file)
 {
 	check_address(file);
-	lock_acquire(&lock);
+	lock_acquire(&filesys_lock);
 	struct file *fileobj = filesys_open(file);
-	lock_release(&lock);
+	lock_release(&filesys_lock);
 
 	if (fileobj == NULL)
 	{
@@ -307,7 +307,7 @@ int open(const char *file)
 	{
 		file_close(fileobj);
 	}
-	// lock_release(&lock);
+
 	return fd;
 }
 
@@ -345,6 +345,7 @@ int filesize(int fd)
 int read(int fd, void *buffer, unsigned size)
 {
 	check_address(buffer);
+	
 	off_t char_count = 0;
 	struct thread *cur = thread_current();
 	struct file *file = find_file(fd);
@@ -383,9 +384,13 @@ int read(int fd, void *buffer, unsigned size)
 	}
 	else
 	{
-		lock_acquire(&lock);
+		// if (!lock_held_by_current_thread(&filesys_lock)){
+		// 	lock_acquire(&filesys_lock);
+		// }
+		lock_acquire(&filesys_lock);
 		char_count = file_read(file, buffer, size);
-		lock_release(&lock);
+		lock_release(&filesys_lock);
+		
 	}
 	return char_count;
 }
@@ -420,9 +425,9 @@ int write(int fd, const void *buffer, unsigned size)
 	}
 	else
 	{
-		lock_acquire(&lock);
+		lock_acquire(&filesys_lock);
 		write_size = file_write(file, buffer, size);
-		lock_release(&lock);
+		lock_release(&filesys_lock);
 	}
 	return write_size;
 }

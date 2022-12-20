@@ -2,6 +2,8 @@
 #include <debug.h>
 #include "filesys/inode.h"
 #include "threads/malloc.h"
+#include "userprog/syscall.h"
+#include "threads/thread.h"
 
 
 /* Opens a file for the given INODE, of which it takes ownership,
