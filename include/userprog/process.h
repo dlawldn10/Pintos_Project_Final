@@ -20,7 +20,7 @@ struct container {
 	size_t page_zero_byte;
 };
 
-bool
-lazy_load_segment (struct page *page, void *aux);
+bool lazy_load_segment (struct page *page, void *aux);
+// struct lock vm_lock;
 
 #endif /* userprog/process.h */

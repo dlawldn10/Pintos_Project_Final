@@ -6,10 +6,11 @@
 #include "include/lib/kernel/bitmap.h"
 #include "include/threads/mmu.h"
 
+// 페이지당 섹터 수(SECTORS_PER_PAGE)는 스왑 영역을 페이지 사이즈 단위로 관리하기 위한 값
+const size_t SECTORS_PER_PAGE = PGSIZE / DISK_SECTOR_SIZE; /* 4096/512 = 8 */
 
 
 /* DO NOT MODIFY BELOW LINE */
-
 static bool anon_swap_in(struct page *page, void *kva);
 static bool anon_swap_out(struct page *page);
 static void anon_destroy(struct page *page);

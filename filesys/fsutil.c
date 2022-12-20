@@ -12,6 +12,7 @@
 #include "threads/vaddr.h"
 
 /* List files in the root directory. */
+/* 루트 디렉터리에 있는 파일을 나열합니다. */
 void
 fsutil_ls (char **argv UNUSED) {
 	struct dir *dir;
@@ -28,6 +29,7 @@ fsutil_ls (char **argv UNUSED) {
 
 /* Prints the contents of file ARGV[1] to the system console as
  * hex and ASCII. */
+/* 파일 ARGV[1] 의 내용을 시스템 콘솔에 hex 와 ASCII로 출력합니다. */
 void
 fsutil_cat (char **argv) {
 	const char *file_name = argv[1];
@@ -53,6 +55,7 @@ fsutil_cat (char **argv) {
 }
 
 /* Deletes file ARGV[1]. */
+/* 파일 ARGV[1] 를 제거합니다. */
 void
 fsutil_rm (char **argv) {
 	const char *file_name = argv[1];
@@ -74,6 +77,15 @@ fsutil_rm (char **argv) {
  * beginning of the scratch disk.  Later calls advance across the
  * disk.  This disk position is independent of that used for
  * fsutil_get(), so all `put's should precede all `get's. */
+/* "scratch" 디스크인 hdc 또는 hd1:0 으로부터 파일 시스템으로 ARGV[1] 파일을 복사합니다.
+ * 
+ * sratch 디스크의 현재 섹터는 스크래치 디스크의 현재 섹터는
+ * 문자열 "PUT\0" 다음에 32비트 최소 끝 형식(?) 정수 파일 크기를 바이트 단위로 나타냅니다.
+ * 후속 섹터는 파일 내용을 보유합니다.
+ * 
+ * 이 함수를 최초로 호출하면, 이 함수는 scratch 디스크의 맨 처음부터 읽기 시작합니다.
+ * 이후 호출은 디스크 전체에서 진행됩니다.
+ * 이 디스크 위치는 fsutil_get()에 사용되는 것과는 별개이므로 모든 `put'이 모든 `get'보다 선행해야 합니다.*/
 void
 fsutil_put (char **argv) {
 	static disk_sector_t sector = 0;
@@ -137,6 +149,15 @@ fsutil_put (char **argv) {
  * beginning of the scratch disk.  Later calls advance across the
  * disk.  This disk position is independent of that used for
  * fsutil_put(), so all `put's should precede all `get's. */
+/* "scratch" 디스크인 hdc 또는 hd1:0 으로부터 파일 시스템으로 ARGV[1] 파일을 복사합니다.
+ * 
+ * sratch 디스크의 현재 섹터는 스크래치 디스크의 현재 섹터는
+ * 문자열 "GET\0" 다음에 32비트 최소 끝 형식(?) 정수 파일 크기를 바이트 단위로 나타냅니다.
+ * 후속 섹터는 파일 내용을 보유합니다.
+ * 
+ * 이 함수를 최초로 호출하면, 이 함수는 scratch 디스크의 맨 처음부터 쓰기 시작합니다.
+ * 이후 호출은 디스크 전체에서 진행됩니다.
+ * 이 디스크 위치는 fsutil_get()에 사용되는 것과는 별개이므로 모든 `put'이 모든 `get'보다 선행해야 합니다.*/
 void
 fsutil_get (char **argv) {
 	static disk_sector_t sector = 0;
